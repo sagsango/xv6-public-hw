@@ -291,4 +291,10 @@ tar:
 	cp dist/* dist/.gdbinit.tmpl /tmp/xv6
 	(cd /tmp; tar cf - xv6) | gzip >xv6-rev10.tar.gz  # the next one will be 10 (9/17)
 
+bootskel: bootskel.S
+	as bootskel.S -o bootskel.o
+	ld -e start bootskel.o -o bootskellinked.o
+	objcopy -O binary bootskellinked.o bootskel
+	dd if=bootskel of=bootskel.img bs=512 count=1 skip=62
+
 .PHONY: dist-test dist
