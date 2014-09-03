@@ -1,3 +1,5 @@
+.org 0x7c00
+
 .code16
 .globl start
 start:
@@ -14,5 +16,5 @@ stop:
 thestring:
 	.string "Hello World"
 
-.org 0x01fe
+.org 0x7dfe
  .word 0xAA55
