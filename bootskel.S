@@ -16,5 +16,8 @@ stop:
 thestring:
 	.string "Hello World"
 
-.org 0x7dfe
+thestring:
+	.string "Hello World"
+
+.org 0x01fe
  .word 0xAA55
