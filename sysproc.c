@@ -87,5 +87,7 @@ sys_uptime(void)
   acquire(&tickslock);
   xticks = ticks;
   release(&tickslock);
+
+  procfsinit(); 
   return xticks;
 }

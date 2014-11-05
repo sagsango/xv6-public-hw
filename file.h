@@ -35,6 +35,7 @@ struct inode {
   int ref;            // Reference count
   int flags;          // I_BUSY, I_VALID
 
+  uint mounted_dev;   // if this inode is a mount point, mounted_dev is the dev of contained files
   struct inode_functions *i_func;
 
   short type;         // copy of disk inode

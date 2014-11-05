@@ -540,7 +540,12 @@ dirlookup(struct inode *dp, char *name, uint *poff)
       if(poff)
         *poff = off;
       inum = de.inum;
-      return iget(dp->dev, inum, dp);
+
+      // need special handling when we transition between volumes
+      if(dp->mounted_dev)
+        return iget(dp->mounted_dev, inum, dp);
+      else
+        return iget(dp->dev, inum, dp);
     }
   }
 
