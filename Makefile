@@ -170,7 +170,7 @@ UPROGS=\
 	_rm\
 	_stressfs\
 	_sh\
-	_uptime\
+	_mount\
 	_usertests\
 	_wc\
 	_zombie\

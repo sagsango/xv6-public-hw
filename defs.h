@@ -8,6 +8,8 @@ struct rtcdate;
 struct spinlock;
 struct stat;
 struct superblock;
+struct spinlock;
+
 
 // bio.c
 void            binit(void);

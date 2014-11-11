@@ -530,12 +530,9 @@ dirlookup(struct inode *dp, char *name, uint *poff)
   if(dp->type != T_DIR)
     panic("dirlookup not DIR");
 
-  for(off = 0; off < dp->size; off += sizeof(de)){
-    if(dp->i_func->readi(dp, (char*)&de, off, sizeof(de)) != sizeof(de))
-      panic("dirlink read");
-    if(de.inum == 0)
-      continue;
-    if(namecmp(name, de.name) == 0){
+  off = 0;
+  while(dp->i_func->readi(dp, (char*)&de, off, sizeof(de)) == sizeof(de)) {
+    if(de.inum && namecmp(name, de.name) == 0){
       // entry matches path element
       if(poff)
         *poff = off;
@@ -547,6 +544,7 @@ dirlookup(struct inode *dp, char *name, uint *poff)
       else
         return iget(dp->dev, inum, dp);
     }
+    off++;
   }
 
   return 0;
