@@ -45,6 +45,7 @@
 #define MSR_LSTAR	0xC0000082	// stores syscall's entry rip
 #define MSR_CSTAR	0xC0000083	// used for compatiblity mode (not implemented)
 #define MSR_SFMASK	0xC0000084	// syscall flag mask
+#define MSR_FS_BAS	0xC0000100	// syscall flag mask
 
 // The CS values for user and kernel space
 #define USER_CS		35
@@ -268,10 +269,10 @@ struct gatedesc {
 }*/
 //found https://github.com/manojstonybrook/CSE-506-Operating-System-SBU/blob/master/lab5/inc/mmu.h
 
-#define SETCALLGATE(gate, cs, off, d)   \
+#define SETCALLGATE(gate, c, off, d)   \
 {                                                         \
   (gate)->off_15_0 = (uint32)(off) & 0xffff;                \
-  (gate)->cs = (cs);                                      \
+  (gate)->cs = (c);                                      \
   (gate)->args = 0;                                        \
   (gate)->rsv1 = 0;                                        \
   (gate)->type = STS_CG64;                                 \

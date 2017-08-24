@@ -96,7 +96,7 @@ entry32mp:
 # access EFER Model specific register
   mov $MSR_EFER, %ecx
   rdmsr
-  bts $0, %eax #enable system call extentions
+  #bts $0, %eax #enable system call extentions
   bts $8, %eax #enable long mode
   wrmsr
 
@@ -178,12 +178,12 @@ ignore_sysret:
 
 .global syscall_entry
 syscall_entry:
-  push $USER_DS
+#  push $USER_DS
 #  push %rsp
-  push $0
-  push %r11
-  push $USER_CS
-  push %rcx
+#  push $0
+#  push %r11
+#  push $USER_CS
+#  push %rcx
 
   push $0
   push $64

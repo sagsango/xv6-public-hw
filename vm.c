@@ -62,7 +62,7 @@ seginit(void)
   tss[16] = 0x00680000; // IO Map Base = End of TSS
 
   // point FS smack in the middle of our local storage page
-  wrmsr(0xC0000100, ((uint64) local) + (PGSIZE / 2));
+  wrmsr(MSR_FS_BAS, ((uint64) local) + (PGSIZE / 2));
 
   c = &cpus[cpunum()];
   c->local = local;
@@ -86,8 +86,8 @@ seginit(void)
   gdt[SEG_TSS+0] = SEG(STS_T64A, 0xb, addr, !APP_SEG, DPL_USER, 0);
   gdt[SEG_TSS+1] = SEG(0,addr >> 32, addr >> 48, 0, 0, 0);
 
-  struct gatedesc *gdtcg =(struct gatedesc*) &gdt[CALL_GATE];
-//  SETCALLGATE(gdtcg,0,0,1);
+  //struct gatedesc *gdtcg =(struct gatedesc*) &gdt[CALL_GATE];
+  //SETCALLGATE(gdtcg,KERNEL_CS,0x4f0,!DPL_USER);
 
   lgdt((void*) gdt, 8 * sizeof(struct segdesc));
 
