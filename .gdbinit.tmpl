@@ -1,5 +1,6 @@
-#if you would like to use gdb in 32bit mode, comment out lines 8 and 15, then uncomment
-#the lines after. Note this will only work properly until 64bit mode is enabled in entry.S
+#if you would like to use gdb in 32bit mode, comment out "break _start" and the
+#second case of "set architecture i386:x86-64," then uncomment the lines after. 
+#Note this will only work properly until 64bit mode is enabled in entry.S
 
 python
 gdb.execute("set architecture i386:x86-64:intel")
