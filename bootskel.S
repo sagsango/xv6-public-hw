@@ -1,5 +1,3 @@
-.org 0x7c00
-
 .code16
 .globl start
 start:
@@ -12,9 +10,6 @@ _start:
 
 stop:
 	jmp stop
-
-thestring:
-	.string "Hello World"
 
 thestring:
 	.string "Hello World"
