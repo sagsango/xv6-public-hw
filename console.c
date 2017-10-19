@@ -2,11 +2,14 @@
 // Input is from the keyboard or serial port.
 // Output is written to the screen and serial port.
 
+#include <stdarg.h>
+
 #include "types.h"
 #include "defs.h"
 #include "param.h"
 #include "traps.h"
 #include "spinlock.h"
+#include "sleeplock.h"
 #include "fs.h"
 #include "file.h"
 #include "memlayout.h"
@@ -23,13 +26,21 @@ static struct {
   int locking;
 } cons;
 
+static char digits[] = "0123456789abcdef";
+
+static void
+printptr(addr_t x) {
+  int i;
+  for (i = 0; i < (sizeof(addr_t) * 2); i++, x <<= 4)
+    consputc(digits[x >> (sizeof(addr_t) * 8 - 4)]);
+}
+
 static void
 printint(int xx, int base, int sign)
 {
-  static char digits[] = "0123456789abcdef";
-  char buf[16];
+  char buf[32];
   int i;
-  uint x;
+  uint64 x;
 
   if(sign && (sign = xx < 0))
     x = -xx;
@@ -53,9 +64,11 @@ printint(int xx, int base, int sign)
 void
 cprintf(char *fmt, ...)
 {
+  va_list ap;
   int i, c, locking;
-  uint *argp;
   char *s;
+
+  va_start(ap, fmt);
 
   locking = cons.locking;
   if(locking)
@@ -64,7 +77,6 @@ cprintf(char *fmt, ...)
   if (fmt == 0)
     panic("null fmt");
 
-  argp = (uint*)(void*)(&fmt + 1);
   for(i = 0; (c = fmt[i] & 0xff) != 0; i++){
     if(c != '%'){
       consputc(c);
@@ -75,14 +87,16 @@ cprintf(char *fmt, ...)
       break;
     switch(c){
     case 'd':
-      printint(*argp++, 10, 1);
+      printint(va_arg(ap, int), 10, 1);
       break;
     case 'x':
+      printint(va_arg(ap, int), 16, 0);
+      break;
     case 'p':
-      printint(*argp++, 16, 0);
+      printptr(va_arg(ap, addr_t));
       break;
     case 's':
-      if((s = (char*)*argp++) == 0)
+      if((s = va_arg(ap, char*)) == 0)
         s = "(null)";
       for(; *s; s++)
         consputc(*s);
@@ -106,7 +120,7 @@ void
 panic(char *s)
 {
   int i;
-  uint pcs[10];
+  addr_t pcs[10];
   
   cli();
   cons.locking = 0;
@@ -192,6 +206,9 @@ consoleintr(int (*getc)(void))
   acquire(&input.lock);
   while((c = getc()) >= 0){
     switch(c){
+    case C('Z'): // reboot
+      lidt(0,0);
+      break;
     case C('P'):  // Process listing.
       procdump();
       break;
@@ -287,7 +304,6 @@ consoleinit(void)
   devsw[CONSOLE].read = consoleread;
   cons.locking = 1;
 
-  picenable(IRQ_KBD);
   ioapicenable(IRQ_KBD, 0);
 }
 

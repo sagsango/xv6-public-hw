@@ -11,6 +11,8 @@
 #include "mmu.h"
 #include "proc.h"
 #include "fs.h"
+#include "spinlock.h"
+#include "sleeplock.h"
 #include "file.h"
 #include "fcntl.h"
 
@@ -54,7 +56,7 @@ sys_dup(void)
 {
   struct file *f;
   int fd;
-  
+
   if(argfd(0, 0, &f) < 0)
     return -1;
   if((fd=fdalloc(f)) < 0)
@@ -92,7 +94,7 @@ sys_close(void)
 {
   int fd;
   struct file *f;
-  
+
   if(argfd(0, &fd, &f) < 0)
     return -1;
   current->proc->ofile[fd] = 0;
@@ -105,7 +107,7 @@ sys_fstat(void)
 {
   struct file *f;
   struct stat *st;
-  
+
   if(argfd(0, 0, &f) < 0 || argptr(1, (void*)&st, sizeof(*st)) < 0)
     return -1;
   return filestat(f, st);
@@ -351,11 +353,10 @@ sys_mknod(void)
 {
   struct inode *ip;
   char *path;
-  int len;
   int major, minor;
-  
+
   begin_op();
-  if((len=argstr(0, &path)) < 0 ||
+  if((argstr(0, &path)) < 0 ||
      argint(1, &major) < 0 ||
      argint(2, &minor) < 0 ||
      (ip = create(path, T_DEV, major, minor)) == 0){
@@ -396,16 +397,16 @@ sys_exec(void)
 {
   char *path, *argv[MAXARG];
   int i;
-  uint uargv, uarg;
+  addr_t uargv, uarg;
 
-  if(argstr(0, &path) < 0 || argint(1, (int*)&uargv) < 0){
+  if(argstr(0, &path) < 0 || argaddr(1, &uargv) < 0){
     return -1;
   }
   memset(argv, 0, sizeof(argv));
   for(i=0;; i++){
     if(i >= NELEM(argv))
       return -1;
-    if(fetchint(uargv+4*i, (int*)&uarg) < 0)
+    if(fetchaddr(uargv+(sizeof(addr_t))*i, (addr_t*)&uarg) < 0)
       return -1;
     if(uarg == 0){
       argv[i] = 0;
