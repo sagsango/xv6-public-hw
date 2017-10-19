@@ -9,6 +9,7 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+struct proc;
 
 //entry.S
 void wrmsr(uint msr, uint64 val);

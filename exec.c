@@ -18,8 +18,6 @@ exec(char *path, char **argv)
   struct proghdr ph;
   pde_t *pgdir, *oldpgdir;
 
-  oldpgdir = proc->pgdir;
-
   begin_op();
 
   if((ip = namei(path)) == 0){
@@ -82,8 +80,8 @@ exec(char *path, char **argv)
   ustack[1] = argc;
   ustack[2] = sp - (argc+1)*sizeof(addr_t);  // argv pointer
 
-  proc->tf->rdi = argc;
-  proc->tf->rsi = sp - (argc+1)*sizeof(addr_t);
+  current->tf->rdi = argc;
+  current->tf->rsi = sp - (argc+1)*sizeof(addr_t);
 
 
   sp -= (3+argc+1) * sizeof(addr_t);
@@ -103,11 +101,11 @@ exec(char *path, char **argv)
 
   current->proc->pgdir = pgdir;
   current->proc->sz = sz;
-  current->proc->tf->rip = elf.entry;  // main
-  current->proc->tf->rcx = elf.entry;
-  current->proc->tf->rsp = sp;
-  switchuvm(proc);
->>>>>>> master
+  current->tf->rip = elf.entry;  // main
+  current->tf->rcx = elf.entry;
+  current->tf->rsp = sp;
+  switchuvm(current->proc);
+
   freevm(oldpgdir);
   return 0;
 

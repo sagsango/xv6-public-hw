@@ -1,10 +1,10 @@
 #include "param.h"
 #include "types.h"
-#include "defs.h"
 #include "x86.h"
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
+#include "defs.h"
 #include "elf.h"
 
 extern char data[];  // defined by kernel.ld
@@ -162,7 +162,7 @@ switchuvm(struct proc *p)
   if(p->pgdir == 0)
     panic("switchuvm: no pgdir");
   tss = (uint*) (((char*) cpu->local) + 1024);
-  tss_set_rsp(tss, 0, (addr_t)proc->kstack + KSTACKSIZE);
+  tss_set_rsp(tss, 0, (addr_t)current->kstack + KSTACKSIZE);
   lcr3(v2p(p->pgdir));
   popcli();
 

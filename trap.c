@@ -97,14 +97,13 @@ trap(struct trapframe *tf)
       // In kernel, it must be our mistake.
       cprintf("unexpected trap %d from cpu %d rip %x (cr2=0x%x)\n",
               tf->trapno, cpunum(), tf->rip, rcr2());
-      cprintf("proc id: %d\n", proc->pid);
+      cprintf("proc id: %d\n", current->proc->pid);
       panic("trap");
     }
     // In user space, assume process misbehaved.
     cprintf("pid %d %s: trap %d err %d on cpu %d "
-
             "rip 0x%x addr 0x%x--kill proc\n",
-            current->pid, current->name, tf->trapno, tf->err, cpunum(), tf->rip,
+            current->proc->pid, current->proc->name, tf->trapno, tf->err, cpunum(), tf->rip,
 
             rcr2());
     current->proc->killed = 1;

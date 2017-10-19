@@ -27,7 +27,7 @@ fetchint(addr_t addr, int *ip)
 int
 fetchaddr(addr_t addr, addr_t *ip)
 {
-  if(addr >= proc->sz || addr+sizeof(addr_t) > proc->sz)
+  if(addr >= current->proc->sz || addr+sizeof(addr_t) > current->proc->sz)
     return -1; 
   *ip = *(addr_t*)(addr);
   return 0;
@@ -57,12 +57,12 @@ static addr_t
 fetcharg(int n)
 {
   switch (n) {
-  case 0: return proc->tf->rdi;
-  case 1: return proc->tf->rsi;
-  case 2: return proc->tf->rdx;
-  case 3: return proc->tf->r10;
-  case 4: return proc->tf->r8;
-  case 5: return proc->tf->r9;
+  case 0: return current->tf->rdi;
+  case 1: return current->tf->rsi;
+  case 2: return current->tf->rdx;
+  case 3: return current->tf->r10;
+  case 4: return current->tf->r8;
+  case 5: return current->tf->r9;
   }
   panic("failed fetch");
   return -1;
@@ -134,7 +134,7 @@ extern addr_t sys_unlink(void);
 extern addr_t sys_wait(void);
 extern addr_t sys_write(void);
 extern addr_t sys_uptime(void);
-extren addr_t sys_clone(void);
+extern addr_t sys_clone(void);
 
 static addr_t (*syscalls[])(void) = {
 
@@ -172,7 +172,7 @@ syscall(void)
     current->tf->rax = syscalls[num]();
   } else {
     cprintf("%d %s: unknown sys call %d\n",
-            current->pid, current->name, num);
+            current->proc->pid, current->proc->name, num);
     current->tf->rax = -1;
   }
 }
