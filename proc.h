@@ -68,10 +68,10 @@ struct proc {
 // Per-process state
 struct thread {
   struct proc* proc;
-  struct proc  temporarilyhere;
-  char *kstack;                // Bottom of kernel stack for this process
-  enum procstate state;        // Process state
   struct trapframe *tf;        // Trap frame for current syscall
+  char *kstack;                // Bottom of kernel stack for this process
+  struct proc  temporarilyhere;
+  enum procstate state;        // Process state
   struct context *context;     // swtch() here to run process
   void *chan;                  // If non-zero, sleeping on chan
 };

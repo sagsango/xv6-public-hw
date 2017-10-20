@@ -11,7 +11,7 @@ extern char data[];  // defined by kernel.ld
 pde_t *kpgdir;  // for use in scheduler()
 
 __thread struct cpu *cpu;
-__thread struct proc *proc;
+__thread struct thread *current;
 
 static pde_t *kpml4;
 static pde_t *kpdpt;
