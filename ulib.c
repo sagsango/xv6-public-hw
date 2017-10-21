@@ -106,8 +106,10 @@ memmove(void *vdst, void *vsrc, int n)
 
 void* malloc(unsigned int);
 int thread_create(void (*function)(void)) {
-  char* new_stack = malloc(1024*1024);
-  return clone(function,new_stack+1024*1024);
+  const int stack_size = 1024*1024;
+  addr_t* new_stack = malloc(stack_size);
+  new_stack += stack_size/sizeof(addr_t)-1; 
+  return clone(function,new_stack);
 }
 void thread_join(int thread_id) {
   printf(1,"Didn't actually join.\n");

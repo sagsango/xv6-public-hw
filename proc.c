@@ -143,7 +143,7 @@ growproc(int n)
       return -1;
   }
   current->proc->sz = sz;
-  switchuvm(current->proc);
+  switchuvm(current);
   return 0;
 }
 
@@ -318,7 +318,7 @@ scheduler(void)
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
       current = p;
-      switchuvm(p->proc);
+      switchuvm(p);
       p->state = RUNNING;
       swtch(&cpu->scheduler, current->context);
       switchkvm();

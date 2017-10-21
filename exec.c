@@ -104,7 +104,7 @@ exec(char *path, char **argv)
   current->tf->rip = elf.entry;  // main
   current->tf->rcx = elf.entry;
   current->tf->rsp = sp;
-  switchuvm(current->proc);
+  switchuvm(current);
 
   freevm(oldpgdir);
   return 0;

@@ -154,18 +154,17 @@ switchkvm(void)
 }
 
 void
-switchuvm(struct proc *p)
+switchuvm(struct thread *t)
 {
   uint *tss;
   pushcli();
 
-  if(p->pgdir == 0)
+  if(t->proc->pgdir == 0)
     panic("switchuvm: no pgdir");
   tss = (uint*) (((char*) cpu->local) + 1024);
   tss_set_rsp(tss, 0, (addr_t)current->kstack + KSTACKSIZE);
-  lcr3(v2p(p->pgdir));
+  lcr3(v2p(t->proc->pgdir));
   popcli();
-
 }
 
 // Return the address of the PTE in page table pgdir
