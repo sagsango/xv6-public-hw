@@ -162,7 +162,7 @@ switchuvm(struct thread *t)
   if(t->proc->pgdir == 0)
     panic("switchuvm: no pgdir");
   tss = (uint*) (((char*) cpu->local) + 1024);
-  tss_set_rsp(tss, 0, (addr_t)current->kstack + KSTACKSIZE);
+  tss_set_rsp(tss, 0, (addr_t)t->kstack + KSTACKSIZE);
   lcr3(v2p(t->proc->pgdir));
   popcli();
 }

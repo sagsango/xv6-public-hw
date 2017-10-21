@@ -111,6 +111,8 @@ int thread_create(void (*function)(void)) {
   new_stack += stack_size/sizeof(addr_t)-1; 
   return clone(function,new_stack);
 }
+
+// can probably just delete this function once the system call is implemented
 void thread_join(int thread_id) {
   printf(1,"Didn't actually join.\n");
 }
