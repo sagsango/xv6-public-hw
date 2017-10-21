@@ -105,9 +105,11 @@ userinit(void)
   p->tf->cs = (SEG_UCODE << 3) | DPL_USER;
   p->tf->ss = (SEG_UDATA << 3) | DPL_USER;
 
-  p->tf->rflags = FL_IF;
+//  p->tf->eflags = FL_IF;   // with SYSRET, EFLAGS is in R11
+  p->tf->r11 = FL_IF;
   p->tf->rsp = PGSIZE;
-  p->tf->rip = 0;  // beginning of initcode.S
+
+//  p->tf->rip = 0;   // with SYSRET, RIP is in RCX
   p->tf->rcx = 0;
   
   safestrcpy(p->proc->name, "initcode", sizeof(p->proc->name));
@@ -375,6 +377,7 @@ forkret(void)
   static int first = 1;
   // Still holding ptable.lock from scheduler.
   release(&ptable.lock);
+  cprintf("forkret\n");
 
   if (first) {
     // Some initialization functions must be run in the context
