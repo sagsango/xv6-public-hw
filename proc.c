@@ -377,7 +377,6 @@ forkret(void)
   static int first = 1;
   // Still holding ptable.lock from scheduler.
   release(&ptable.lock);
-  cprintf("forkret\n");
 
   if (first) {
     // Some initialization functions must be run in the context
