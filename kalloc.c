@@ -46,12 +46,11 @@ void
 freerange(void *vstart, void *vend)
 {
   char *p;
-  p = (char*)PGROUNDUP((uint)vstart);
+  p = (char*)PGROUNDUP((addr_t)vstart);
   for(; p + PGSIZE <= (char*)vend; p += PGSIZE)
     kfree(p);
 }
 
-//PAGEBREAK: 21
 // Free the page of physical memory pointed at by v,
 // which normally should have been returned by a
 // call to kalloc().  (The exception is when
@@ -61,7 +60,7 @@ kfree(char *v)
 {
   struct run *r;
 
-  if((uint)v % PGSIZE || v < end || v2p(v) >= PHYSTOP)
+  if((addr_t)v % PGSIZE || v < end || V2P(v) >= PHYSTOP)
     panic("kfree");
 
   // Fill with junk to catch dangling refs.

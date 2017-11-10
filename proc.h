@@ -1,59 +1,47 @@
-
-
 // Layout of the trap frame built on the stack by the
 // hardware and by trapasm.S, and passed to trap().
 struct trapframe {
-  // registers as pushed by pusha
-  uint edi;
-  uint esi;
-  uint ebp;
-  uint oesp;      // useless & ignored
-  uint ebx;
-  uint edx;
-  uint ecx;
-  uint eax;
-
-  // rest of trap frame
-  ushort gs;
-  ushort padding1;
-  ushort fs;
-  ushort padding2;
-  ushort es;
-  ushort padding3;
-  ushort ds;
-  ushort padding4;
-  uint trapno;
-
-  // below here defined by x86 hardware
-  uint err;
-  uint eip;
-  ushort cs;
-  ushort padding5;
-  uint eflags;
-
-  // below here only when crossing rings, such as from user to kernel
-  uint esp;
-  ushort ss;
-  ushort padding6;
+   uint64 rax;      
+   uint64 rbx;
+   uint64 rcx;
+   uint64 rdx;
+   uint64 rbp;
+   uint64 rsi;
+   uint64 rdi;
+   uint64 r8;
+   uint64 r9;
+   uint64 r10;
+   uint64 r11;
+   uint64 r12;
+   uint64 r13;
+   uint64 r14;
+   uint64 r15;
+ 
+   uint64 trapno;
+   uint64 err;
+ 
+   uint64 rip;     // for syscall, this is ignored. use rcx
+   uint64 cs;      // for syscall, this is also ignored, use MSR_CSTAR
+   uint64 rflags;  
+   uint64 rsp;     
+   uint64 ss;      
 };
-
-
-// Segments in proc->gdt.
-#define NSEGS     7
 
 // Per-CPU state
 struct cpu {
-  uchar id;                    // Local APIC ID; index into cpus[] below
+  uchar id;
+  uchar apicid;                // Local APIC ID
   struct context *scheduler;   // swtch() here to enter scheduler
   struct taskstate ts;         // Used by x86 to find stack for interrupt
   struct segdesc gdt[NSEGS];   // x86 global descriptor table
   volatile uint started;       // Has the CPU started?
   int ncli;                    // Depth of pushcli nesting.
   int intena;                  // Were interrupts enabled before pushcli?
-  
+
   // Cpu-local storage variables; see below
-  struct cpu *cpu;
-  struct proc *proc;           // The currently-running process.
+  void *local;
+  //struct cpu *cpu;
+  //struct proc *proc;           // The currently-running process.
 };
 
 extern struct cpu cpus[NCPU];
@@ -67,8 +55,11 @@ extern int ncpu;
 // holding those two variables in the local cpu's struct cpu.
 // This is similar to how thread-local variables are implemented
 // in thread libraries such as Linux pthreads.
-extern struct cpu *cpu asm("%gs:0");       // &cpus[cpunum()]
-extern struct proc *proc asm("%gs:4");     // cpus[cpunum()].proc
+extern __thread struct cpu *cpu;
+extern __thread struct proc *proc;
+
+//extern struct cpu *cpu asm("%gs:0");       // &cpus[cpunum()]
+//extern struct proc *proc asm("%gs:4");     // cpus[cpunum()].proc
 
 //PAGEBREAK: 17
 // Saved registers for kernel context switches.
@@ -82,11 +73,15 @@ extern struct proc *proc asm("%gs:4");     // cpus[cpunum()].proc
 // at the "Switch stacks" comment. Switch doesn't save eip explicitly,
 // but it is on the stack and allocproc() manipulates it.
 struct context {
-  uint edi;
-  uint esi;
-  uint ebx;
-  uint ebp;
-  uint eip;
+  addr_t r15;
+  addr_t r14;
+  addr_t r13;
+  addr_t r12;
+  addr_t r11;
+  addr_t rbx;
+  addr_t ebp; //rbp
+  addr_t eip; //rip;
+
 };
 
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
@@ -94,7 +89,7 @@ enum signal { SIGINT=2, SIGKILL=9, SIGALRM=14 };
 
 // Per-process state
 struct proc {
-  uint sz;                     // Size of process memory (bytes)
+  addr_t sz;                     // Size of process memory (bytes)
   pde_t* pgdir;                // Page table
   char *kstack;                // Bottom of kernel stack for this process
   enum procstate state;        // Process state

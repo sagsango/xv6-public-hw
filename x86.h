@@ -62,11 +62,15 @@ struct segdesc;
 static inline void
 lgdt(struct segdesc *p, int size)
 {
-  volatile ushort pd[3];
+  volatile ushort pd[5];
 
   pd[0] = size-1;
-  pd[1] = (uint)p;
-  pd[2] = (uint)p >> 16;
+  pd[1] = (addr_t)p;
+  pd[2] = (addr_t)p >> 16;
+  pd[3] = (addr_t)p >> 32;
+  pd[4] = (addr_t)p >> 48;
+//  pd[5] = (addr_t)p >> 64;
+//  pd[6] = (addr_t)p >> 80;
 
   asm volatile("lgdt (%0)" : : "r" (pd));
 }
@@ -76,11 +80,13 @@ struct gatedesc;
 static inline void
 lidt(struct gatedesc *p, int size)
 {
-  volatile ushort pd[3];
+  volatile ushort pd[5];
 
   pd[0] = size-1;
-  pd[1] = (uint)p;
-  pd[2] = (uint)p >> 16;
+  pd[1] = (addr_t)p;
+  pd[2] = (addr_t)p >> 16;
+  pd[3] = (addr_t)p >> 32;
+  pd[4] = (addr_t)p >> 48;
 
   asm volatile("lidt (%0)" : : "r" (pd));
 }
@@ -91,11 +97,11 @@ ltr(ushort sel)
   asm volatile("ltr %0" : : "r" (sel));
 }
 
-static inline uint
+static inline addr_t
 readeflags(void)
 {
-  uint eflags;
-  asm volatile("pushfl; popl %0" : "=r" (eflags));
+  addr_t eflags;
+  asm volatile("pushf; pop %0" : "=r" (eflags));
   return eflags;
 }
 
@@ -117,11 +123,17 @@ sti(void)
   asm volatile("sti");
 }
 
+static inline void
+hlt(void)
+{
+  asm volatile("hlt");
+}
+
 static inline uint
-xchg(volatile uint *addr, uint newval)
+xchg(volatile uint *addr, addr_t newval)
 {
   uint result;
-  
+
   // The + in "+m" denotes a read-modify-write operand.
   asm volatile("lock; xchgl %0, %1" :
                "+m" (*addr), "=a" (result) :
@@ -130,18 +142,18 @@ xchg(volatile uint *addr, uint newval)
   return result;
 }
 
-static inline uint
+static inline addr_t
 rcr2(void)
 {
-  uint val;
-  asm volatile("movl %%cr2,%0" : "=r" (val));
+  addr_t val;
+  asm volatile("mov %%cr2,%0" : "=r" (val));
   return val;
 }
 
 static inline void
-lcr3(uint val) 
+lcr3(addr_t val)
 {
-  asm volatile("movl %0,%%cr3" : : "r" (val));
+  asm volatile("mov %0,%%cr3" : : "r" (val));
 }
 
 //PAGEBREAK: 36

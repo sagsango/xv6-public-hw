@@ -12,13 +12,16 @@ exec(char *path, char **argv)
 {
   char *s, *last;
   int i, off;
-  uint argc, sz, sp, ustack[3+MAXARG+1];
+  addr_t argc, sz, sp, ustack[3+MAXARG+1];
   struct elfhdr elf;
   struct inode *ip;
   struct proghdr ph;
   pde_t *pgdir, *oldpgdir;
 
+  oldpgdir = proc->pgdir;
+
   begin_op();
+
   if((ip = namei(path)) == 0){
     end_op();
     return -1;
@@ -27,7 +30,7 @@ exec(char *path, char **argv)
   pgdir = 0;
 
   // Check ELF header
-  if(readi(ip, (char*)&elf, 0, sizeof(elf)) < sizeof(elf))
+  if(readi(ip, (char*)&elf, 0, sizeof(elf)) != sizeof(elf))
     goto bad;
   if(elf.magic != ELF_MAGIC)
     goto bad;
@@ -44,7 +47,11 @@ exec(char *path, char **argv)
       continue;
     if(ph.memsz < ph.filesz)
       goto bad;
+    if(ph.vaddr + ph.memsz < ph.vaddr)
+      goto bad;
     if((sz = allocuvm(pgdir, sz, ph.vaddr + ph.memsz)) == 0)
+      goto bad;
+    if(ph.vaddr % PGSIZE != 0)
       goto bad;
     if(loaduvm(pgdir, (char*)ph.vaddr, ip, ph.off, ph.filesz) < 0)
       goto bad;
@@ -60,12 +67,11 @@ exec(char *path, char **argv)
     goto bad;
   clearpteu(pgdir, (char*)(sz - 2*PGSIZE));
   sp = sz;
-
   // Push argument strings, prepare rest of stack in ustack.
   for(argc = 0; argv[argc]; argc++) {
     if(argc >= MAXARG)
       goto bad;
-    sp = (sp - (strlen(argv[argc]) + 1)) & ~3;
+    sp = (sp - (strlen(argv[argc]) + 1)) & ~(sizeof(addr_t)-1);
     if(copyout(pgdir, sp, argv[argc], strlen(argv[argc]) + 1) < 0)
       goto bad;
     ustack[3+argc] = sp;
@@ -74,10 +80,14 @@ exec(char *path, char **argv)
 
   ustack[0] = 0xffffffff;  // fake return PC
   ustack[1] = argc;
-  ustack[2] = sp - (argc+1)*4;  // argv pointer
+  ustack[2] = sp - (argc+1)*sizeof(addr_t);  // argv pointer
 
-  sp -= (3+argc+1) * 4;
-  if(copyout(pgdir, sp, ustack, (3+argc+1)*4) < 0)
+  proc->tf->rdi = argc;
+  proc->tf->rsi = sp - (argc+1)*sizeof(addr_t);
+
+
+  sp -= (3+argc+1) * sizeof(addr_t);
+  if(copyout(pgdir, sp, ustack, (3+argc+1)*sizeof(addr_t)) < 0)
     goto bad;
 
   // Save program name for debugging.
@@ -87,11 +97,11 @@ exec(char *path, char **argv)
   safestrcpy(proc->name, last, sizeof(proc->name));
 
   // Commit to the user image.
-  oldpgdir = proc->pgdir;
   proc->pgdir = pgdir;
   proc->sz = sz;
-  proc->tf->eip = elf.entry;  // main
-  proc->tf->esp = sp;
+  proc->tf->rip = elf.entry;  // main
+  proc->tf->rcx = elf.entry;
+  proc->tf->rsp = sp;
   switchuvm(proc);
   freevm(oldpgdir);
   return 0;
