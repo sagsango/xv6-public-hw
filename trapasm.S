@@ -75,9 +75,8 @@ syscall_trap:
 .globl syscall_trapret
 syscall_trapret:
 
-  push %rsp	
+  mov %rsp, %rdi
   call checksignals
-  add $8, %rsp
 	
 syscall_sigtrapret:	
 	
