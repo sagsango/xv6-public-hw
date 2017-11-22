@@ -6,8 +6,14 @@ struct pipe;
 struct proc;
 struct rtcdate;
 struct spinlock;
+struct sleeplock;
 struct stat;
 struct superblock;
+
+//entry.S
+void wrmsr(uint msr, uint64 val);
+void syscall_entry(void);
+void ignore_sysret(void);
 
 // bio.c
 void            binit(void);
@@ -39,7 +45,8 @@ int             dirlink(struct inode*, char*, uint);
 struct inode*   dirlookup(struct inode*, char*, uint*);
 struct inode*   ialloc(uint, short, struct inode*);
 struct inode*   idup(struct inode*);
-void            iinit(void);
+void            iinit(int dev);
+void            ilock(struct inode*);
 void            iput(struct inode*);
 void            ilock(struct inode*);
 void            iunlock(struct inode*);
@@ -86,20 +93,14 @@ void            lapicstartap(uchar, uint);
 void            microdelay(int);
 
 // log.c
-void            initlog(void);
+void            initlog(int dev);
 void            log_write(struct buf*);
 void            begin_op();
 void            end_op();
 
 // mp.c
 extern int      ismp;
-int             mpbcpu(void);
 void            mpinit(void);
-void            mpstartthem(void);
-
-// picirq.c
-void            picenable(int);
-void            picinit(void);
 
 // pipe.c
 int             pipealloc(struct file**, struct file**);
@@ -109,7 +110,6 @@ int             pipewrite(struct pipe*, char*, int);
 
 //PAGEBREAK: 16
 // proc.c
-struct proc*    copyproc(struct proc*);
 void            exit(void);
 int             fork(void);
 int             growproc(int);
@@ -129,12 +129,19 @@ void            swtch(struct context**, struct context*);
 
 // spinlock.c
 void            acquire(struct spinlock*);
-void            getcallerpcs(void*, uint*);
+void            getcallerpcs(void*, addr_t*);
+void		getstackpcs(addr_t*, addr_t*);
 int             holding(struct spinlock*);
 void            initlock(struct spinlock*, char*);
 void            release(struct spinlock*);
 void            pushcli(void);
 void            popcli(void);
+
+// sleeplock.c
+void            acquiresleep(struct sleeplock*);
+void            releasesleep(struct sleeplock*);
+int             holdingsleep(struct sleeplock*);
+void            initsleeplock(struct sleeplock*, char*);
 
 // string.c
 int             memcmp(const void*, const void*, uint);
@@ -146,15 +153,16 @@ int             strncmp(const char*, const char*, uint);
 char*           strncpy(char*, const char*, int);
 
 // syscall.c
+void		syscall(void);
+void    syscallinit(void);
 int             argint(int, int*);
 int             argptr(int, char**, int);
 int             argstr(int, char**);
-int             fetchint(uint, int*);
-int             fetchstr(uint, char**);
+int             argaddr(int, addr_t*);
+int             fetchaddr(addr_t, addr_t*);
+int             fetchstr(addr_t, char**);
 void            syscall(void);
-
-// timer.c
-void            timerinit(void);
+int		fetchint(addr_t, int*);
 
 // trap.c
 void            idtinit(void);
@@ -163,6 +171,7 @@ void            tvinit(void);
 extern struct spinlock tickslock;
 
 // uart.c
+void		uartearlyinit(void);
 void            uartinit(void);
 void            uartintr(void);
 void            uartputc(int);
@@ -170,11 +179,10 @@ void            uartputc(int);
 // vm.c
 void            seginit(void);
 void            kvmalloc(void);
-void            vmenable(void);
 pde_t*          setupkvm(void);
 char*           uva2ka(pde_t*, char*);
 int             allocuvm(pde_t*, uint, uint);
-int             deallocuvm(pde_t*, uint, uint);
+int             deallocuvm(pde_t*, uint64, uint64);
 void            freevm(pde_t*);
 void            inituvm(pde_t*, char*, uint);
 int             loaduvm(pde_t*, char*, struct inode*, uint, uint);
