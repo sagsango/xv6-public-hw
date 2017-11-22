@@ -33,7 +33,8 @@ struct inode {
   uint dev;           // Device number
   uint inum;          // Inode number
   int ref;            // Reference count
-  int flags;          // I_BUSY, I_VALID
+  struct sleeplock lock;
+  int flags;          // I_VALID
 
   uint mounted_dev;   // if this inode is a mount point, mounted_dev is the dev of contained files
   struct inode_functions *i_func;
@@ -45,7 +46,6 @@ struct inode {
   uint size;
   uint addrs[NDIRECT+1];
 };
-#define I_BUSY 0x1
 #define I_VALID 0x2
 
 // table mapping major device number to
@@ -59,5 +59,3 @@ extern struct devsw devsw[];
 
 #define CONSOLE 1
 
-//PAGEBREAK!
-// Blank page.

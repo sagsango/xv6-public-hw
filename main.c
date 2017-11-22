@@ -17,36 +17,33 @@ extern char end[]; // first address after kernel loaded from ELF file
 int
 main(void)
 {
+  uartearlyinit();
   kinit1(end, P2V(4*1024*1024)); // phys page allocator
   kvmalloc();      // kernel page table
-  mpinit();        // collect info about this machine
-  lapicinit();
-  seginit();       // set up segments
-  cprintf("\ncpu%d: starting xv6\n\n", cpu->id);
-  picinit();       // interrupt controller
+  mpinit();        // detect other processors
+  lapicinit();     // interrupt controller
+  tvinit();        // trap vectors
+  seginit();       // segment descriptors
+  cprintf("\ncpu%d: starting xv6\n\n", cpunum());
   ioapicinit();    // another interrupt controller
-  consoleinit();   // I/O devices & their interrupts
+  consoleinit();   // console hardware
   uartinit();      // serial port
   pinit();         // process table
-  tvinit();        // trap vectors
+//  tvinit();        // trap vectors
   binit();         // buffer cache
   fileinit();      // file table
-  iinit();         // inode cache
   ideinit();       // disk
-  if(!ismp)
-    timerinit();   // uniprocessor timer
   startothers();   // start other processors
   kinit2(P2V(4*1024*1024), P2V(PHYSTOP)); // must come after startothers()
   userinit();      // first user process
-  // Finish setting up this processor in mpmain.
-  mpmain();
+  mpmain();        // finish this processor's setup
 }
 
 // Other CPUs jump here from entryother.S.
-static void
+void
 mpenter(void)
 {
-  switchkvm(); 
+  switchkvm();
   seginit();
   lapicinit();
   mpmain();
@@ -56,13 +53,16 @@ mpenter(void)
 static void
 mpmain(void)
 {
-  cprintf("cpu%d: starting\n", cpu->id);
+  cprintf("cpu%d: starting\n", cpunum());
   idtinit();       // load idt register
+  syscallinit();   // syscall set up
   xchg(&cpu->started, 1); // tell startothers() we're up
   scheduler();     // start running processes
 }
 
-pde_t entrypgdir[];  // For entry.S
+//PAGEBREAK!
+
+void entry32mp(void);
 
 // Start the non-boot (AP) processors.
 static void
@@ -76,22 +76,25 @@ startothers(void)
   // Write entry code to unused memory at 0x7000.
   // The linker has placed the image of entryother.S in
   // _binary_entryother_start.
-  code = p2v(0x7000);
-  memmove(code, _binary_entryother_start, (uint)_binary_entryother_size);
+  code = P2V(0x7000);
+  memmove(code, _binary_entryother_start,
+          (addr_t)_binary_entryother_size);
 
   for(c = cpus; c < cpus+ncpu; c++){
     if(c == cpus+cpunum())  // We've started already.
       continue;
 
-    // Tell entryother.S what stack to use, where to enter, and what 
+    // Tell entryother.S what stack to use, where to enter, and what
     // pgdir to use. We cannot use kpgdir yet, because the AP processor
     // is running in low  memory, so we use entrypgdir for the APs too.
     stack = kalloc();
-    *(void**)(code-4) = stack + KSTACKSIZE;
-    *(void**)(code-8) = mpenter;
-    *(int**)(code-12) = (void *) v2p(entrypgdir);
+    *(uint32*)(code-4) = 0x8000; // enough stack to get us to entry64mp
+    *(uint32*)(code-8) = v2p(entry32mp);
+    *(uint64*)(code-16) = (uint64) (stack + KSTACKSIZE);
 
-    lapicstartap(c->id, v2p(code));
+
+
+    lapicstartap(c->apicid, V2P(code));
 
     // wait for cpu to finish mpmain()
     while(c->started == 0)
@@ -99,21 +102,4 @@ startothers(void)
   }
 }
 
-// Boot page table used in entry.S and entryother.S.
-// Page directories (and page tables), must start on a page boundary,
-// hence the "__aligned__" attribute.  
-// Use PTE_PS in page directory entry to enable 4Mbyte pages.
-__attribute__((__aligned__(PGSIZE)))
-pde_t entrypgdir[NPDENTRIES] = {
-  // Map VA's [0, 4MB) to PA's [0, 4MB)
-  [0] = (0) | PTE_P | PTE_W | PTE_PS,
-  // Map VA's [KERNBASE, KERNBASE+4MB) to PA's [0, 4MB)
-  [KERNBASE>>PDXSHIFT] = (0) | PTE_P | PTE_W | PTE_PS,
-};
 
-//PAGEBREAK!
-// Blank page.
-//PAGEBREAK!
-// Blank page.
-//PAGEBREAK!
-// Blank page.

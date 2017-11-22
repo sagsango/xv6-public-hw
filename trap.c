@@ -9,28 +9,39 @@
 #include "spinlock.h"
 
 // Interrupt descriptor table (shared by all CPUs).
-struct gatedesc idt[256];
-extern uint vectors[];  // in vectors.S: array of 256 entry pointers
+uint *idt;
+extern addr_t vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
 uint ticks;
 
-void
-tvinit(void)
-{
-  int i;
+static void 
+mkgate(uint *idt, uint n, addr_t kva, uint pl, uint trap) {
+  uint64 addr = (uint64) kva;
 
-  for(i = 0; i < 256; i++)
-    SETGATE(idt[i], 0, SEG_KCODE<<3, vectors[i], 0);
-  SETGATE(idt[T_SYSCALL], 1, SEG_KCODE<<3, vectors[T_SYSCALL], DPL_USER);
-  
-  initlock(&tickslock, "time");
+  n *= 4;
+  idt[n+0] = (addr & 0xFFFF) | ((SEG_KCODE << 3) << 16);
+  idt[n+1] = (addr & 0xFFFF0000) | 0x8E00 | ((pl & 3) << 13); 
+  if(trap)
+    idt[n+1] |= TRAP_GATE;
+  idt[n+2] = addr >> 32;
+  idt[n+3] = 0;
 }
 
-void
-idtinit(void)
-{
-  lidt(idt, sizeof(idt));
+void idtinit(void) {
+  lidt((void*) idt, PGSIZE);
 }
+
+void tvinit(void) {
+  int n;
+  idt = (uint*) kalloc();
+  memset(idt, 0, PGSIZE);
+
+  for (n = 0; n < 256; n++)
+    mkgate(idt, n, vectors[n], 0, 0);
+  mkgate(idt, T_SYSCALL, vectors[T_SYSCALL], DPL_USER, 1);
+}
+
+
 
 //PAGEBREAK: 41
 void
@@ -40,6 +51,7 @@ trap(struct trapframe *tf)
     if(proc->killed)
       exit();
     proc->tf = tf;
+
     syscall();
     if(proc->killed)
       exit();
@@ -48,7 +60,7 @@ trap(struct trapframe *tf)
 
   switch(tf->trapno){
   case T_IRQ0 + IRQ_TIMER:
-    if(cpu->id == 0){
+    if(cpunum() == 0){
       acquire(&tickslock);
       ticks++;
       wakeup(&ticks);
@@ -74,28 +86,29 @@ trap(struct trapframe *tf)
   case T_IRQ0 + 7:
   case T_IRQ0 + IRQ_SPURIOUS:
     cprintf("cpu%d: spurious interrupt at %x:%x\n",
-            cpu->id, tf->cs, tf->eip);
+            cpunum(), tf->cs, tf->rip);
     lapiceoi();
     break;
-   
+
   //PAGEBREAK: 13
   default:
     if(proc == 0 || (tf->cs&3) == 0){
       // In kernel, it must be our mistake.
-      cprintf("unexpected trap %d from cpu %d eip %x (cr2=0x%x)\n",
-              tf->trapno, cpu->id, tf->eip, rcr2());
+      cprintf("unexpected trap %d from cpu %d rip %x (cr2=0x%x)\n",
+              tf->trapno, cpunum(), tf->rip, rcr2());
+      cprintf("proc id: %d\n", proc->pid);
       panic("trap");
     }
     // In user space, assume process misbehaved.
     cprintf("pid %d %s: trap %d err %d on cpu %d "
-            "eip 0x%x addr 0x%x--kill proc\n",
-            proc->pid, proc->name, tf->trapno, tf->err, cpu->id, tf->eip, 
+            "rip 0x%x addr 0x%x--kill proc\n",
+            proc->pid, proc->name, tf->trapno, tf->err, cpunum(), tf->rip,
             rcr2());
     proc->killed = 1;
   }
 
   // Force process exit if it has been killed and is in user space.
-  // (If it is still executing in the kernel, let it keep running 
+  // (If it is still executing in the kernel, let it keep running
   // until it gets to the regular system call return.)
   if(proc && proc->killed && (tf->cs&3) == DPL_USER)
     exit();
