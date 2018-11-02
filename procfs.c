@@ -54,7 +54,7 @@ sprintuint(char* buf, uint x)
 }
 
   static void
-sprinthex32(char * buf, uint x)
+sprintx32(char * buf, uint x)
 {
   buf[0] = x >> 28;
   for (int i = 0; i < 8; i++) {
@@ -154,9 +154,9 @@ procfs_readi(struct inode* ip, char* buf, uint offset, uint size)
           if ((i*PGSIZE) >= mapsize || todo == 0)
             break;
           void * ka = uva2ka(p->pgdir, (void *)(i*PGSIZE));
-          sprinthex32(buf1, i*PGSIZE);
+          sprintx32(buf1, i*PGSIZE);
           buf1[8] = ' ';
-          sprinthex32(buf1+9, V2P(ka));
+          sprintx32(buf1+9, V2P(ka));
           buf1[17] = '\n';
           uint skip = offset % ENTRYSIZE;
           uint ncpy = ENTRYSIZE - skip;
