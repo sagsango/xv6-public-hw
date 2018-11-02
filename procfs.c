@@ -10,15 +10,14 @@
 #include "proc.h"
 #include "memlayout.h"
 
-  void
-procfs_ipopulate(struct inode* ip) {
-  ip->size = 0;
-  if(ip->inum < 10000)
-    ip->type = 1;
-  else
-    ip->type = 0;
+#define T_DIR ((1))
 
+  void
+procfs_ipopulate(struct inode* ip)
+{
+  ip->size = 0;
   ip->flags |= I_VALID;
+  ip->type = ip->inum < 10000 ? T_DIR : 100;
 }
 
   void
@@ -74,7 +73,8 @@ struct dirent procfiles[PROCFILES+1+NPROC] = {{10001,"meminfo"}, {10002,"cpuinfo
 
 // returns the number of active processes, and updates the procfiles table
   static uint
-updateprocfiles() {
+updateprocfiles()
+{
   int num = 0, index = 0;
   acquire(&ptable.lock);
   while(index < NPROC) {
@@ -109,15 +109,21 @@ readi_helper(char * buf, uint offset, uint maxsize, char * src, uint srcsize)
 procfs_readi(struct inode* ip, char* buf, uint offset, uint size)
 {
   const uint procsize = sizeof(struct dirent)*updateprocfiles();
-  char buf1[32];
-  if(ip->mounted_dev) { // the mount point
+  // the mount point
+  if(ip->mounted_dev == 2) {
     return readi_helper(buf, offset, size, (char *)procfiles, procsize);
-  } else if (ip->type == 1) {  // directory - can only be one of the process directories
+  }
+
+  // directory - can only be one of the process directories
+  if (ip->type == T_DIR) {
     struct dirent procdir[4] = {{20000+ip->inum, "name"}, {30000+ip->inum, "parent"},
-        {40000+ip->inum, "pid"}, {50000+ip->inum, "meminfo"}};
+      {40000+ip->inum, "pid"}, {50000+ip->inum, "mappings"}};
     return readi_helper(buf, offset, size, (char *)procdir, sizeof(procdir));
-  } else {  // files
-    switch(((int)ip->inum)) {
+  }
+
+  // files
+  char buf1[32];
+  switch(((int)ip->inum)) {
     case 10001: // meminfo
       sprintuint(buf1, kmemfreecount());
       return readi_helper(buf, offset, size, buf1, strlen(buf1));
@@ -125,11 +131,11 @@ procfs_readi(struct inode* ip, char* buf, uint offset, uint size)
       sprintuint(buf1, ncpu);
       return readi_helper(buf, offset, size, buf1, strlen(buf1));
     default: break;
-    }
+  }
 
-    const int pid = (ip->inum % 10000) - 1;
-    struct proc * p = &ptable.proc[pid];
-    switch(ip->inum/10000) {
+  const int pid = (ip->inum % 10000) - 1;
+  struct proc * p = &ptable.proc[pid];
+  switch(ip->inum/10000) {
     case 2:
       return readi_helper(buf, offset, size, p->name, 16);
     case 3:
@@ -165,7 +171,6 @@ procfs_readi(struct inode* ip, char* buf, uint offset, uint size)
       }
     default:
       break;
-    }
   }
   return -1;
 }
@@ -178,7 +183,8 @@ struct inode_functions procfs_functions = {
 };
 
   void
-procfsinit(char * const path) {
+procfsinit(char * const path)
+{
   begin_op();
   struct inode* mount_point = namei(path);
   if (mount_point) {
