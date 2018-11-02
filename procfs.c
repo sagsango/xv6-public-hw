@@ -31,7 +31,7 @@ procfs_writei(struct inode* ip, char* buf, uint offset, uint count)
 }
 
 #define PROCFILES ((2))
-struct dirent procfiles[PROCFILES+NPROC] = {{10001,"meminfo"}, {10002,"cpuinfo"}};
+struct dirent procfiles[PROCFILES+1+NPROC] = {{10001,"meminfo"}, {10002,"cpuinfo"}};
 
 static void
 sprintuint(char* buf, uint x)
@@ -61,68 +61,74 @@ extern struct {
 } ptable;
 
 // returns the number of active processes, and updates the procfiles table
-static int updateprocfiles() {
+static uint updateprocfiles() {
   int num = 0, index = 0;
+  
   acquire(&ptable.lock);
   while(index < NPROC) {
     if(ptable.proc[index].state != UNUSED && ptable.proc[index].state != ZOMBIE) {
-      procfiles[num+PROCFILES].inum = index+1;
-      sprintuint(procfiles[num+PROCFILES].name,ptable.proc[index].pid);
+      procfiles[PROCFILES+1+num].inum = index+1;
+      sprintuint(procfiles[PROCFILES+1+num].name,ptable.proc[index].pid);
       num++;
+      if (ptable.proc[index].pid == proc->pid) {
+        procfiles[PROCFILES].inum = index+1;
+        memmove(procfiles[PROCFILES].name,"self",5);
+      }
     }
     index++;
   }
   release(&ptable.lock);
-  return num+PROCFILES;
+  return PROCFILES + 1 + num;
 }
 
-int procfs_readi(struct inode* ip, char* buf, uint offset, uint size)
+  static int
+readi_helper(char * buf, uint offset, uint maxsize, char * src, uint srcsize)
 {
-  int procsize = sizeof(struct dirent)*updateprocfiles();
-  if(ip->mounted_dev) {
-    int end = size+offset;
-    if(end > procsize)
-      end = procsize;
-    memmove(buf,((char*)procfiles)+offset,end-offset);
-    return end-offset;
-  }
-  // directory - can only be one of the process directories
-  else if(ip->type == 1) {
-    struct dirent procdir[3] = {{20000+ip->inum,"name"},{30000+ip->inum,"parent"}};
-    int end = size+offset;
-    if(end > sizeof(procdir))
-      end = sizeof(procdir);
-    memmove(buf,((char*)procdir)+offset,end-offset);
-    return end-offset;
-  }
-  // file
-  else {
+  if (offset > srcsize)
+    return -1;
+  uint end = offset + maxsize;
+  if (end > srcsize)
+    end = srcsize;
+  memmove(buf, src+offset, end-offset);
+  return end-offset;
+}
+
+
+  int
+procfs_readi(struct inode* ip, char* buf, uint offset, uint size)
+{
+  const uint procsize = sizeof(struct dirent)*updateprocfiles();
+  char buf1[20];
+  if(ip->mounted_dev) { // the mount point
+    return readi_helper(buf, offset, size, (char *)procfiles, procsize);
+  } else if (ip->type == 1) {  // directory - can only be one of the process directories
+    struct dirent procdir[3] = {{20000+ip->inum, "name"}, {30000+ip->inum, "parent"}, {40000+ip->inum, "pid"}};
+    return readi_helper(buf, offset, size, (char *)procdir, sizeof(procdir));
+  } else {  // files
     switch(((int)ip->inum)) {
     case 10001: // meminfo
-      if (offset == 0) {
-        sprintuint(buf, kmemfreecount());
-        return strlen(buf);
-      } else return 0;
+      sprintuint(buf1, kmemfreecount());
+      return readi_helper(buf, offset, size, buf1, strlen(buf1));
     case 10002:
-      if (offset == 0) {
-        sprintuint(buf, ncpu);
-        return strlen(buf);
-      } else return 0;
+      sprintuint(buf1, ncpu);
+      return readi_helper(buf, offset, size, buf1, strlen(buf1));
     default: break;
     }
 
     switch(((int)ip->inum/10000)) {
     case 2:
-      memmove(buf,ptable.proc[ip->inum-20001].name,16);
-      if(offset>=strlen(buf)) return 0;
-      return strlen(buf);
+      return readi_helper(buf, offset, size, ptable.proc[ip->inum-20001].name, 16);
     case 3:
-      sprintuint(buf,ptable.proc[ip->inum-30001].parent->pid);
-      if(offset>=strlen(buf)) return 0;
-      return strlen(buf);
+      sprintuint(buf1,ptable.proc[ip->inum-30001].parent->pid); // see updateprocfiles()
+      return readi_helper(buf, offset, size, buf1, strlen(buf1));
+    case 4:
+      sprintuint(buf1,ptable.proc[ip->inum-40001].pid); // see updateprocfiles()
+      return readi_helper(buf, offset, size, buf1, strlen(buf1));
+    default:
+      break;
     }
   }
-  return 0;
+  return -1;
 }
 
 struct inode_functions procfs_functions = {
@@ -133,7 +139,7 @@ struct inode_functions procfs_functions = {
 };
 
   void
-procfsinit(const char * const path) {
+procfsinit(char * const path) {
   begin_op();
   struct inode* mount_point = namei(path);
   if(mount_point) {

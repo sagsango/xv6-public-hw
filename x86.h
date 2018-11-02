@@ -66,9 +66,9 @@ lgdt(struct segdesc *p, int size)
 
   pd[0] = size-1;
   pd[1] = (addr_t)p;
-  pd[2] = (addr_t)p >> 16;
-  pd[3] = (addr_t)p >> 32;
-  pd[4] = (addr_t)p >> 48;
+  pd[2] = ((addr_t)p) >> 16;
+  pd[3] = ((addr_t)p) >> 32;
+  pd[4] = ((addr_t)p) >> 48;
 //  pd[5] = (addr_t)p >> 64;
 //  pd[6] = (addr_t)p >> 80;
 
