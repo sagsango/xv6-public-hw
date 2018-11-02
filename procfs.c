@@ -17,6 +17,9 @@ procfs_ipopulate(struct inode* ip)
 {
   ip->size = 0;
   ip->flags |= I_VALID;
+
+  // inum < 10000 are reserved for directories
+  // use inum > 10000 for files in procfs
   ip->type = ip->inum < 10000 ? T_DIR : 100;
 }
 
@@ -82,11 +85,11 @@ updateprocfiles()
       procfiles[PROCFILES+num].inum = index+1;
       sprintuint(procfiles[PROCFILES+num].name,ptable.proc[index].pid);
       num++;
-      if (ptable.proc[index].pid == proc->pid) {
-        procfiles[PROCFILES+num].inum = index+1;
-        memmove(procfiles[PROCFILES+num].name,"self",5);
-        num++;
-      }
+      // also checks if the process at [index] is the current process
+      // if yes, create a "self" directory
+      // TODO: your code here
+
+
     }
     index++;
   }
@@ -117,63 +120,36 @@ procfs_readi(struct inode* ip, char* buf, uint offset, uint size)
 
   // directory - can only be one of the process directories
   if (ip->type == T_DIR) {
-    struct dirent procdir[4] = {{20000+ip->inum, "name"}, {30000+ip->inum, "parent"},
-      {40000+ip->inum, "pid"}, {50000+ip->inum, "mappings"}};
-    return readi_helper(buf, offset, size, (char *)procdir, sizeof(procdir));
+    // List the files in a process directory:
+    // It contains "name", "pid", "ppid", and "mappings".
+    // Choose a good pattern for inum.
+    // You will need to check inum to see what should be the file content (see below)
+    // TODO: Your code here
+
+
+    return -1; // remove this after implementation
   }
 
   // files
   char buf1[32];
   switch (((int)ip->inum)) {
-    case 10001: // meminfo
+    case 10001: // meminfo: print the number of free pages
       sprintuint(buf1, kmemfreecount());
       return readi_helper(buf, offset, size, buf1, strlen(buf1));
-    case 10002:
-      sprintuint(buf1, ncpu);
-      return readi_helper(buf, offset, size, buf1, strlen(buf1));
+    case 10002: // cpuinfo: print the total number of cpus. See the 'ncpu' global variable
+      // TODO: Your code here
+
+
+      return -1; // remove this after implementation
     default: break;
   }
 
-  const int pid = (ip->inum % 10000) - 1;
-  struct proc * p = &ptable.proc[pid];
-  switch (ip->inum/10000) {
-    case 2:
-      return readi_helper(buf, offset, size, p->name, 16);
-    case 3:
-      sprintuint(buf1,p->parent->pid); // see updateprocfiles()
-      return readi_helper(buf, offset, size, buf1, strlen(buf1));
-    case 4:
-      sprintuint(buf1,p->pid); // see updateprocfiles()
-      return readi_helper(buf, offset, size, buf1, strlen(buf1));
-    case 5:
-      {
-#define ENTRYSIZE ((18))
-        addr_t mapsize = PGROUNDUP(p->sz);
-        uint end = offset+size;
-        uint todo = size;
-        for (addr_t i = offset/ENTRYSIZE; i < (end+ENTRYSIZE-1)/ENTRYSIZE; i++) {
-          if ((i*PGSIZE) >= mapsize || todo == 0)
-            break;
-          void * ka = uva2ka(p->pgdir, (void *)(i*PGSIZE));
-          sprintx32(buf1, i*PGSIZE);
-          buf1[8] = ' ';
-          sprintx32(buf1+9, V2P(ka));
-          buf1[17] = '\n';
-          uint skip = offset % ENTRYSIZE;
-          uint ncpy = ENTRYSIZE - skip;
-          if (todo < ncpy)
-            ncpy = todo;
-          memmove(buf, buf1+skip, ncpy);
-          buf += ncpy;
-          offset += ncpy;
-          todo -= ncpy;
-        }
-        return size - todo;
-      }
-    default:
-      break;
-  }
-  return -1;
+  // filling the content for all other files
+  // TODO: Your code here
+
+
+
+  return -1; // return -1 on error
 }
 
 struct inode_functions procfs_functions = {
