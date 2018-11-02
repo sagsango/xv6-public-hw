@@ -12,19 +12,19 @@ struct file {
    inode. When a new in-memory inode is allocated using iget(),
    the parent inode is now passed in, and the functions are inherited.
 
-   If no parent is passed in, the standard file-system functions are assigned. 
+   If no parent is passed in, the standard file-system functions are assigned.
 
    WARNING: this list of functions is likely incomplete, meaning that some operation
             may not be supported in new file systems introduced. To improve
             generality, add new file system function pointers here as needed.
 */
 
-struct inode_functions {  
+struct inode_functions {
   void (*ipopulate)(struct inode*);                   // fill in inode details
   void (*iupdate)(struct inode*);                     // write inode details back to disk
   int (*readi)(struct inode*, char*, uint, uint);     // read from file contents
   int (*writei)(struct inode*, char*, uint, uint);    // write to file contents
-}; 
+};
 
 #define NDIRECT 12
 
@@ -58,4 +58,3 @@ struct devsw {
 extern struct devsw devsw[];
 
 #define CONSOLE 1
-

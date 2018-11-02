@@ -87,7 +87,8 @@ userinit(void)
   struct proc *p;
   extern char _binary_initcode_start[], _binary_initcode_size[];
   p = allocproc();
-  
+  p->parent = p; // ulgy fix for uninitized parent pointer
+
   initproc = p;
   if((p->pgdir = setupkvm()) == 0)
     panic("userinit: out of memory?");
@@ -105,7 +106,7 @@ userinit(void)
 
 //  p->tf->rip = 0;   // with SYSRET, RIP is in RCX
   p->tf->rcx = 0;
-  
+
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
 

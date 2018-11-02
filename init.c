@@ -15,9 +15,12 @@ main(void)
   if(open("console", O_RDWR) < 0){
     mknod("console", 1, 1);
     open("console", O_RDWR);
-  }  
+  }
   dup(0);  // stdout
   dup(0);  // stderr
+  mkdir("proc");
+  if (mount("proc", "procfs") < 0)
+    printf(1, "mount procfs failed\n");
 
   for(;;){
     printf(1, "init: starting sh\n");

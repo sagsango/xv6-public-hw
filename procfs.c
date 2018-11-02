@@ -19,27 +19,40 @@ void procfs_ipopulate(struct inode* ip) {
   ip->flags |= I_VALID;
 }
 
-void procfs_iupdate(struct inode* ip) {
-//  cprintf("dummy iupdate\n");
+  void
+procfs_iupdate(struct inode* ip)
+{
 }
 
-int procfs_writei(struct inode* ip, char* buf, uint offset, uint count) {
-  cprintf("dummy writei\n");
+  static int
+procfs_writei(struct inode* ip, char* buf, uint offset, uint count)
+{
   return -1;
 }
 
-#define PROCFILES 2
-struct dirent procfiles[NPROC+PROCFILES] = {{10001,"meminfo"}, {10002,"diskinfo"}};
-
+#define PROCFILES ((2))
+struct dirent procfiles[PROCFILES+NPROC] = {{10001,"meminfo"}, {10002,"cpuinfo"}};
 
 static void
-sprintint(char* buf, uint x) 
+sprintuint(char* buf, uint x)
 {
-  static char digits[] = "0123456789";
-  int index=0;
-  if(x>10) buf[index++]=digits[(x/10)%10];
-  buf[index++]=digits[x%10];
-  buf[index++]=0;
+  uint stack[10];
+  uint stack_size = 0;
+  if (x == 0) {
+    buf[0] = '0';
+    buf[1] = '\0';
+    return;
+  }
+  while (x) {
+    stack[stack_size++] = x % 10u;
+    x /= 10u;
+  }
+  uint buf_size = 0;
+  while (stack_size) {
+    buf[buf_size++] = '0' + stack[stack_size - 1];
+    stack_size--;
+  }
+  buf[buf_size] = 0;
 }
 
 extern struct {
@@ -52,9 +65,9 @@ static int updateprocfiles() {
   int num = 0, index = 0;
   acquire(&ptable.lock);
   while(index < NPROC) {
-    if(ptable.proc[index].state != UNUSED && ptable.proc[index].state != ZOMBIE) { 
+    if(ptable.proc[index].state != UNUSED && ptable.proc[index].state != ZOMBIE) {
       procfiles[num+PROCFILES].inum = index+1;
-      sprintint(procfiles[num+PROCFILES].name,ptable.proc[index].pid);
+      sprintuint(procfiles[num+PROCFILES].name,ptable.proc[index].pid);
       num++;
     }
     index++;
@@ -63,8 +76,8 @@ static int updateprocfiles() {
   return num+PROCFILES;
 }
 
-int procfs_readi(struct inode* ip, char* buf, uint offset, uint size) 
-{    
+int procfs_readi(struct inode* ip, char* buf, uint offset, uint size)
+{
   int procsize = sizeof(struct dirent)*updateprocfiles();
   if(ip->mounted_dev) {
     int end = size+offset;
@@ -84,47 +97,50 @@ int procfs_readi(struct inode* ip, char* buf, uint offset, uint size)
   }
   // file
   else {
-    char *hw = "Hello World!\n";
-
     switch(((int)ip->inum)) {
-    case 10001: case 10002:
-      memmove(buf,hw,strlen(hw));
-      if(offset==0)
-        return strlen(hw);
-      else
-        return 0;
+    case 10001: // meminfo
+      if (offset == 0) {
+        sprintuint(buf, kmemfreecount());
+        return strlen(buf);
+      } else return 0;
+    case 10002:
+      if (offset == 0) {
+        sprintuint(buf, ncpu);
+        return strlen(buf);
+      } else return 0;
+    default: break;
     }
-    
+
     switch(((int)ip->inum/10000)) {
     case 2:
-      memmove(buf,ptable.proc[ip->inum-20001].name,16);      
+      memmove(buf,ptable.proc[ip->inum-20001].name,16);
       if(offset>=strlen(buf)) return 0;
       return strlen(buf);
     case 3:
-      sprintint(buf,ptable.proc[ip->inum-30001].parent->pid);
+      sprintuint(buf,ptable.proc[ip->inum-30001].parent->pid);
       if(offset>=strlen(buf)) return 0;
-      return strlen(buf);    
+      return strlen(buf);
     }
   }
   return 0;
 }
 
-struct inode_functions procfs_functions = { 
-  procfs_ipopulate, 
+struct inode_functions procfs_functions = {
+  procfs_ipopulate,
   procfs_iupdate,
   procfs_readi,
-  procfs_writei 
+  procfs_writei
 };
 
-void procfsinit() {
+  void
+procfsinit(const char * const path) {
   begin_op();
-  struct inode* mount_point = namei("/proc");
+  struct inode* mount_point = namei(path);
   if(mount_point) {
-    ilock(mount_point); 
+    ilock(mount_point);
     mount_point->i_func = &procfs_functions;
     mount_point->mounted_dev = 2;
     iunlock(mount_point);
   }
   end_op();
 }
-
