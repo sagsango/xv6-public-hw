@@ -10,7 +10,8 @@
 #include "proc.h"
 #include "memlayout.h"
 
-void procfs_ipopulate(struct inode* ip) {
+  void
+procfs_ipopulate(struct inode* ip) {
   ip->size = 0;
   if(ip->inum < 10000)
     ip->type = 1;
@@ -31,10 +32,7 @@ procfs_writei(struct inode* ip, char* buf, uint offset, uint count)
   return -1;
 }
 
-#define PROCFILES ((2))
-struct dirent procfiles[PROCFILES+1+NPROC] = {{10001,"meminfo"}, {10002,"cpuinfo"}};
-
-static void
+  static void
 sprintuint(char* buf, uint x)
 {
   uint stack[10];
@@ -71,8 +69,12 @@ extern struct {
   struct proc proc[NPROC];
 } ptable;
 
+#define PROCFILES ((2))
+struct dirent procfiles[PROCFILES+1+NPROC] = {{10001,"meminfo"}, {10002,"cpuinfo"}};
+
 // returns the number of active processes, and updates the procfiles table
-static uint updateprocfiles() {
+  static uint
+updateprocfiles() {
   int num = 0, index = 0;
   acquire(&ptable.lock);
   while(index < NPROC) {
@@ -111,7 +113,8 @@ procfs_readi(struct inode* ip, char* buf, uint offset, uint size)
   if(ip->mounted_dev) { // the mount point
     return readi_helper(buf, offset, size, (char *)procfiles, procsize);
   } else if (ip->type == 1) {  // directory - can only be one of the process directories
-    struct dirent procdir[4] = {{20000+ip->inum, "name"}, {30000+ip->inum, "parent"}, {40000+ip->inum, "pid"}, {50000+ip->inum, "meminfo"}};
+    struct dirent procdir[4] = {{20000+ip->inum, "name"}, {30000+ip->inum, "parent"},
+        {40000+ip->inum, "pid"}, {50000+ip->inum, "meminfo"}};
     return readi_helper(buf, offset, size, (char *)procdir, sizeof(procdir));
   } else {  // files
     switch(((int)ip->inum)) {
@@ -126,7 +129,7 @@ procfs_readi(struct inode* ip, char* buf, uint offset, uint size)
 
     const int pid = (ip->inum % 10000) - 1;
     struct proc * p = &ptable.proc[pid];
-    switch(((int)ip->inum/10000)) {
+    switch(ip->inum/10000) {
     case 2:
       return readi_helper(buf, offset, size, p->name, 16);
     case 3:
@@ -178,7 +181,7 @@ struct inode_functions procfs_functions = {
 procfsinit(char * const path) {
   begin_op();
   struct inode* mount_point = namei(path);
-  if(mount_point) {
+  if (mount_point) {
     ilock(mount_point);
     mount_point->i_func = &procfs_functions;
     mount_point->mounted_dev = 2;
