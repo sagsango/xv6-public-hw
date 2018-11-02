@@ -8,6 +8,7 @@
 #include "mmu.h"
 #include "x86.h"
 #include "proc.h"
+#include "memlayout.h"
 
 void procfs_ipopulate(struct inode* ip) {
   ip->size = 0;
@@ -55,6 +56,16 @@ sprintuint(char* buf, uint x)
   buf[buf_size] = 0;
 }
 
+  static void
+sprinthex32(char * buf, uint x)
+{
+  buf[0] = x >> 28;
+  for (int i = 0; i < 8; i++) {
+    uint y = 0xf & (x >> (28 - (i * 4)));
+    buf[i] = (y < 10) ? (y + '0') : (y + 'a' - 10);
+  }
+}
+
 extern struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -96,11 +107,11 @@ readi_helper(char * buf, uint offset, uint maxsize, char * src, uint srcsize)
 procfs_readi(struct inode* ip, char* buf, uint offset, uint size)
 {
   const uint procsize = sizeof(struct dirent)*updateprocfiles();
-  char buf1[20];
+  char buf1[32];
   if(ip->mounted_dev) { // the mount point
     return readi_helper(buf, offset, size, (char *)procfiles, procsize);
   } else if (ip->type == 1) {  // directory - can only be one of the process directories
-    struct dirent procdir[3] = {{20000+ip->inum, "name"}, {30000+ip->inum, "parent"}, {40000+ip->inum, "pid"}};
+    struct dirent procdir[4] = {{20000+ip->inum, "name"}, {30000+ip->inum, "parent"}, {40000+ip->inum, "pid"}, {50000+ip->inum, "meminfo"}};
     return readi_helper(buf, offset, size, (char *)procdir, sizeof(procdir));
   } else {  // files
     switch(((int)ip->inum)) {
@@ -113,15 +124,42 @@ procfs_readi(struct inode* ip, char* buf, uint offset, uint size)
     default: break;
     }
 
+    const int pid = (ip->inum % 10000) - 1;
+    struct proc * p = &ptable.proc[pid];
     switch(((int)ip->inum/10000)) {
     case 2:
-      return readi_helper(buf, offset, size, ptable.proc[ip->inum-20001].name, 16);
+      return readi_helper(buf, offset, size, p->name, 16);
     case 3:
-      sprintuint(buf1,ptable.proc[ip->inum-30001].parent->pid); // see updateprocfiles()
+      sprintuint(buf1,p->parent->pid); // see updateprocfiles()
       return readi_helper(buf, offset, size, buf1, strlen(buf1));
     case 4:
-      sprintuint(buf1,ptable.proc[ip->inum-40001].pid); // see updateprocfiles()
+      sprintuint(buf1,p->pid); // see updateprocfiles()
       return readi_helper(buf, offset, size, buf1, strlen(buf1));
+    case 5:
+      {
+#define ENTRYSIZE ((18))
+        addr_t mapsize = PGROUNDUP(p->sz);
+        uint end = offset+size;
+        uint todo = size;
+        for (addr_t i = offset/ENTRYSIZE; i < (end+ENTRYSIZE-1)/ENTRYSIZE; i++) {
+          if ((i*PGSIZE) >= mapsize || todo == 0)
+            break;
+          void * ka = uva2ka(p->pgdir, (void *)(i*PGSIZE));
+          sprinthex32(buf1, i*PGSIZE);
+          buf1[8] = ' ';
+          sprinthex32(buf1+9, V2P(ka));
+          buf1[17] = '\n';
+          uint skip = offset % ENTRYSIZE;
+          uint ncpy = ENTRYSIZE - skip;
+          if (todo < ncpy)
+            ncpy = todo;
+          memmove(buf, buf1+skip, ncpy);
+          buf += ncpy;
+          offset += ncpy;
+          todo -= ncpy;
+        }
+        return size - todo;
+      }
     default:
       break;
     }
