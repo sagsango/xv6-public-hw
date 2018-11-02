@@ -69,7 +69,7 @@ extern struct {
 } ptable;
 
 #define PROCFILES ((2))
-struct dirent procfiles[PROCFILES+1+NPROC] = {{10001,"meminfo"}, {10002,"cpuinfo"}};
+struct dirent procfiles[PROCFILES+NPROC+1] = {{10001,"meminfo"}, {10002,"cpuinfo"}};
 
 // returns the number of active processes, and updates the procfiles table
   static uint
@@ -77,20 +77,21 @@ updateprocfiles()
 {
   int num = 0, index = 0;
   acquire(&ptable.lock);
-  while(index < NPROC) {
-    if(ptable.proc[index].state != UNUSED && ptable.proc[index].state != ZOMBIE) {
-      procfiles[PROCFILES+1+num].inum = index+1;
-      sprintuint(procfiles[PROCFILES+1+num].name,ptable.proc[index].pid);
+  while (index < NPROC) {
+    if (ptable.proc[index].state != UNUSED && ptable.proc[index].state != ZOMBIE) {
+      procfiles[PROCFILES+num].inum = index+1;
+      sprintuint(procfiles[PROCFILES+num].name,ptable.proc[index].pid);
       num++;
       if (ptable.proc[index].pid == proc->pid) {
-        procfiles[PROCFILES].inum = index+1;
-        memmove(procfiles[PROCFILES].name,"self",5);
+        procfiles[PROCFILES+num].inum = index+1;
+        memmove(procfiles[PROCFILES+num].name,"self",5);
+        num++;
       }
     }
     index++;
   }
   release(&ptable.lock);
-  return PROCFILES + 1 + num;
+  return PROCFILES + num;
 }
 
   static int
@@ -110,7 +111,7 @@ procfs_readi(struct inode* ip, char* buf, uint offset, uint size)
 {
   const uint procsize = sizeof(struct dirent)*updateprocfiles();
   // the mount point
-  if(ip->mounted_dev == 2) {
+  if (ip->mounted_dev == 2) {
     return readi_helper(buf, offset, size, (char *)procfiles, procsize);
   }
 
@@ -123,7 +124,7 @@ procfs_readi(struct inode* ip, char* buf, uint offset, uint size)
 
   // files
   char buf1[32];
-  switch(((int)ip->inum)) {
+  switch (((int)ip->inum)) {
     case 10001: // meminfo
       sprintuint(buf1, kmemfreecount());
       return readi_helper(buf, offset, size, buf1, strlen(buf1));
@@ -135,7 +136,7 @@ procfs_readi(struct inode* ip, char* buf, uint offset, uint size)
 
   const int pid = (ip->inum % 10000) - 1;
   struct proc * p = &ptable.proc[pid];
-  switch(ip->inum/10000) {
+  switch (ip->inum/10000) {
     case 2:
       return readi_helper(buf, offset, size, p->name, 16);
     case 3:
