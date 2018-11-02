@@ -63,7 +63,6 @@ extern struct {
 // returns the number of active processes, and updates the procfiles table
 static uint updateprocfiles() {
   int num = 0, index = 0;
-  
   acquire(&ptable.lock);
   while(index < NPROC) {
     if(ptable.proc[index].state != UNUSED && ptable.proc[index].state != ZOMBIE) {
@@ -92,7 +91,6 @@ readi_helper(char * buf, uint offset, uint maxsize, char * src, uint srcsize)
   memmove(buf, src+offset, end-offset);
   return end-offset;
 }
-
 
   int
 procfs_readi(struct inode* ip, char* buf, uint offset, uint size)
@@ -135,7 +133,7 @@ struct inode_functions procfs_functions = {
   procfs_ipopulate,
   procfs_iupdate,
   procfs_readi,
-  procfs_writei
+  procfs_writei,
 };
 
   void
