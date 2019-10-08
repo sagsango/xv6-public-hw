@@ -150,6 +150,7 @@ UPROGS=\
 	_usertests\
 	_wc\
 	_zombie\
+  _stacktour\
 #
 
 fs.img: mkfs README $(UPROGS)
