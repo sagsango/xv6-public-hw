@@ -1,0 +1,17 @@
+.code16
+.global start
+start:
+  movb $0x0e,%ah
+  movb thestring,%al
+  movb $0,%bh
+  movb $7,%bl
+  int $0x10
+
+stop:
+  jmp stop
+
+thestring:
+.string "Hello World"
+
+.org 0x1fe
+.word 0xAA55
