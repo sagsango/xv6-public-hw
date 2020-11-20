@@ -44,7 +44,7 @@ struct context {
   addr_t rip;
 };
 
-enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
+enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE, KZOMBIE };
 
 // Per-process state
 struct proc {
@@ -60,6 +60,7 @@ struct proc {
   int killed;                  // If non-zero, have been killed
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
+  int is_process;              // 1: regular process; 0: kernel thread
   char name[16];               // Process name (debugging)
 };
 

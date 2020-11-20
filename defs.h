@@ -118,6 +118,8 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
+int             startkth(addr_t kroutine); // start a kernel thread
+void            kthinit(void);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
@@ -188,3 +190,6 @@ void            clearpteu(pde_t *pgdir, char *uva);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
+
+
+int argfd(int n, int *pfd, struct file **pf);

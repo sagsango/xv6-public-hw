@@ -6,6 +6,9 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "aio.h"
+#include "sleeplock.h"
+#include "file.h"
 
 struct {
   struct spinlock lock;
@@ -52,6 +55,7 @@ found:
 
   release(&ptable.lock);
 
+  p->is_process = 1; // regular process
   // Allocate kernel stack.
   if((p->kstack = kalloc()) == 0){
     p->state = UNUSED;
@@ -289,10 +293,20 @@ scheduler(void)
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
       proc = p;
-      switchuvm(p);
+      if (p->is_process) {
+        switchuvm(p);
+      }
       p->state = RUNNING;
       swtch(&cpu->scheduler, p->context);
       switchkvm();
+
+      // clean-up kthread
+      if (proc->state == KZOMBIE) {
+        kfree(proc->kstack);
+        proc->kstack = 0;
+        proc->pid = 0;
+        proc->state = UNUSED;
+      }
 
       // Process is done running for now.
       // It should have changed its p->state before coming back.
@@ -460,7 +474,8 @@ procdump(void)
   [SLEEPING]  "sleep ",
   [RUNNABLE]  "runble",
   [RUNNING]   "run   ",
-  [ZOMBIE]    "zombie"
+  [ZOMBIE]    "zombie",
+  [KZOMBIE]   "kzombie",
   };
   int i;
   struct proc *p;
@@ -482,4 +497,141 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+static void
+exitkth(void)
+{
+  acquire(&ptable.lock);
+  proc->state = KZOMBIE;
+  sched();
+  panic("zombie kth_exit");
+}
+
+  int
+startkth(addr_t kroutine)
+{
+  // reuse the code in allocproc. startkth requires the following changes for kernel threads (kth):
+  // (1) a kth is not a process
+  // (2) it does not need a trapframe since it does not run in the user space
+  // (3) it does not need a private page table
+  // (4) its execution will make the following calls: forkret(), then kroutine(), then exitkth()
+  // (5) it should be ready to execute when startkth returns
+  // (6) it has a name "kthread" (for "CTRL+p" in the xv6 shell, see procdump() above)
+  // TODO: Your code here
+
+
+
+
+
+}
+
+  static void
+dummy_kth(void)
+{
+  cprintf("%s is running\n", __func__);
+  for (int i = 0; i < 3; i++) {
+    acquire(&tickslock);
+    uint ticks0 = ticks;
+    do {
+      sleep(&ticks, &tickslock);
+    } while (ticks - ticks0 < 100);
+    release(&tickslock);
+  }
+  cprintf("%s will now stop\n", __func__);
+}
+
+struct aio_task {
+  volatile int * status; // this must be a kernel address; updated after completion
+  pde_t * pgdir; // the page table of the target process
+  struct inode * ip;
+  void * buffer;
+  int offset;
+  int nbytes;
+};
+
+static struct aio_task aio_tasks[64] = {};
+static volatile int num_tasks = 0; // <= 64
+
+static struct spinlock aio_lock;
+
+  static void
+aread_consume_one_task(struct aio_task * t)
+{
+  // execute the task t
+  // use the tmp as a buffer for file I/O
+  // use copyout() to copy the data in tmp to the user-provided buffer
+  // finally, update the execution status to the user process
+  // TODO: Your code here
+
+  static char tmp[4096];
+
+
+
+}
+
+  static void
+aread_kth(void)
+{
+  cprintf("%s is running at %p\n", __func__, proc->kstack);
+  do {
+    // don't need the lock
+    while (num_tasks) {
+      aread_consume_one_task(&aio_tasks[0]);
+      // remove the task from the queue
+      acquire(&aio_lock);
+      memmove(aio_tasks, aio_tasks+1, sizeof(aio_tasks[0]) * (num_tasks-1));
+      num_tasks--;
+      release(&aio_lock);
+    }
+
+    acquire(&tickslock);
+    sleep(&ticks, &tickslock);
+    release(&tickslock);
+  } while (1);
+}
+
+  void
+kthinit(void)
+{
+  if (!startkth((addr_t)dummy_kth))
+    cprintf("start dummy_kth failed\n");
+  initlock(&aio_lock, "aio");
+  if (!startkth((addr_t)aread_kth))
+    cprintf("start aread_kth failed\n");
+}
+
+  int
+sys_aread(void)
+{
+  struct file *file;
+  int offset, nbytes;
+  char *buffer;
+  volatile int * status;
+
+  argint(2, &offset);
+  argint(3, &nbytes);
+  if (nbytes <= 0)
+    return -1;
+  if (argfd(0, 0, &file) < 0 || argptr(1, &buffer, nbytes) < 0 || argptr(4, (char **)&status, sizeof(int)) < 0)
+    return -1;
+
+  *status = 0; // processing
+
+  // nothing to copy
+  if (file->ip->size <= offset)
+    return 0; // no I/O required
+
+  // maybe we will only get fewer bytes
+  if (offset + nbytes > file->ip->size)
+    nbytes = file->ip->size - offset;
+
+  // append the task to the aio queue
+  // TODO: Your code here
+
+
+
+
+  // return how many bytes to expect (> 0)
+  return nbytes;
 }

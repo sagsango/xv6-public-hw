@@ -2,6 +2,7 @@
 #include "types.h"
 struct stat;
 struct rtcdate;
+struct aio;
 
 // system calls
 int fork(void);
@@ -25,6 +26,7 @@ int getpid(void);
 char* sbrk(uint64);
 int sleep(int);
 int uptime(void);
+int aread(int fd, void* buffer, int offset, int nbytes, volatile int * status);
 
 // ulib.c
 int stat(char*, struct stat*);
