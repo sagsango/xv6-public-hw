@@ -204,8 +204,8 @@ tar:
 	(cd /tmp; tar cf - xv6) | gzip >xv6-rev10.tar.gz  # the next one will be 10 (9/17)
 
 bootskel.img: bootskel.S
-	as bootskel.S -o bootskel.o
-	ld -Ttext=0x7c00 -e start bootskel.o -o bootskellinked.o
-	objcopy -O binary bootskellinked.o bootskel.img
+	$(AS) bootskel.S -o bootskel.o
+	$(LD) -Ttext=0x7c00 -e start bootskel.o -o bootskellinked.o
+	$(OBJCOPY) -O binary bootskellinked.o bootskel.img
 
 .PHONY: dist-test dist
