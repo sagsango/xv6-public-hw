@@ -90,7 +90,7 @@ ASFLAGS = -gdwarf-2 -Wa,-divide -Iinclude $(XFLAGS)
 
 # FreeBSD ld wants ``elf_i386_fbsd''
 #LDFLAGS += -m $(shell $(LD) -V | grep elf_i386 2>/dev/null | head -n 1)
-LDFLAGS = -m elf_x86_64 -nodefaultlibs
+LDFLAGS = -m elf_x86_64 -nostdlib
 
 
 xv6.img: bootblock kernel fs.img
@@ -106,7 +106,7 @@ xv6memfs.img: bootblock kernelmemfs
 bootblock: bootasm.S bootmain.c
 	$(CC) -fno-builtin -fno-pic -m32 -Iinclude -O -nostdinc -c bootmain.c
 	$(CC) -fno-builtin -fno-pic -m32 -Iiinclude -nostdinc -c bootasm.S
-	$(LD) -m elf_i386 -nodefaultlibs -N -e start -Ttext 0x7C00 -o bootblock.o bootasm.o bootmain.o
+	$(LD) -m elf_i386 -nostdlib -N -e start -Ttext 0x7C00 -o bootblock.o bootasm.o bootmain.o
 	$(OBJDUMP) -S bootblock.o > bootblock.asm
 	$(OBJCOPY) -S -O binary -j .text bootblock.o bootblock
 	./sign.pl bootblock
