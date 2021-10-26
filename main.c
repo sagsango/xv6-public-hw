@@ -24,12 +24,11 @@ main(void)
   lapicinit();     // interrupt controller
   tvinit();        // trap vectors
   seginit();       // segment descriptors
-  cprintf("\ncpu%d: starting xv6\n\n", cpunum());
+  cprintf("\ncpu%d: starting Fall 2021 xv6\n\n", cpunum());
   ioapicinit();    // another interrupt controller
   consoleinit();   // console hardware
   uartinit();      // serial port
   pinit();         // process table
-//  tvinit();        // trap vectors
   binit();         // buffer cache
   fileinit();      // file table
   ideinit();       // disk
@@ -59,8 +58,6 @@ mpmain(void)
   xchg(&cpu->started, 1); // tell startothers() we're up
   scheduler();     // start running processes
 }
-
-//PAGEBREAK!
 
 void entry32mp(void);
 
@@ -92,8 +89,6 @@ startothers(void)
     *(uint32*)(code-8) = v2p(entry32mp);
     *(uint64*)(code-16) = (uint64) (stack + KSTACKSIZE);
 
-
-
     lapicstartap(c->apicid, V2P(code));
 
     // wait for cpu to finish mpmain()
@@ -101,5 +96,3 @@ startothers(void)
       ;
   }
 }
-
-
