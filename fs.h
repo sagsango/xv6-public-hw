@@ -2,6 +2,7 @@
 // Both the kernel and user programs use this header file.
 
 
+#define NDIRECT 12
 #define ROOTINO 1  // root i-number
 #define BSIZE 512  // block size
 
@@ -21,7 +22,6 @@ struct superblock {
   uint bmapstart;    // Block number of first free map block
 };
 
-#define NDIRECT 12
 #define NINDIRECT (BSIZE / sizeof(uint))
 #define MAXFILE (NDIRECT + NINDIRECT)
 

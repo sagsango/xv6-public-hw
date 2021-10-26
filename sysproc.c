@@ -85,5 +85,21 @@ sys_uptime(void)
   acquire(&tickslock);
   xticks = ticks;
   release(&tickslock);
+
   return xticks;
+}
+
+int
+sys_mount(void)
+{
+  char * path;
+  char * fstype;
+  if (argptr(0, &path, 32) < 0 || argptr(1, &fstype, 8))
+    return -1;
+  if (memcmp(fstype, "procfs", 7) == 0) {
+    procfsinit(path);
+    return 0;
+  } else {
+    return -1;
+  }
 }

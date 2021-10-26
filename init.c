@@ -18,6 +18,9 @@ main(void)
   }
   dup(0);  // stdout
   dup(0);  // stderr
+  mkdir("proc");
+  if (mount("proc", "procfs") < 0)
+    printf(1, "mount procfs failed\n");
 
   for(;;){
     printf(1, "init: starting sh\n");
