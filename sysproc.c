@@ -92,14 +92,19 @@ sys_uptime(void)
 int
 sys_mount(void)
 {
-  char * path;
+  char * mountpoint;
   char * fstype;
-  if (argptr(0, &path, 32) < 0 || argptr(1, &fstype, 8))
+  char * device;
+  if (argptr(0, &fstype, 8) || argptr(1,&device,8) || argptr(2, &mountpoint, 32) < 0)
     return -1;
   if (memcmp(fstype, "procfs", 7) == 0) {
-    procfsinit(path);
+    procfsinit(mountpoint);
     return 0;
-  } else {
+  } else if (memcmp(fstype, "iso9660fs", 7) == 0) {
+    iso9660fsinit(mountpoint,device);
+    return 0;
+  }  
+   else {
     return -1;
   }
 }

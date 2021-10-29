@@ -102,6 +102,9 @@ cprintf(char *fmt, ...)
     case 'p':
       print_x64(va_arg(ap, addr_t));
       break;
+    case 'c':
+      consputc(va_arg(ap, int));
+      break;
     case 's':
       if ((s = va_arg(ap, char*)) == 0)
         s = "(null)";

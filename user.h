@@ -25,7 +25,7 @@ int getpid(void);
 char* sbrk(uint64);
 int sleep(int);
 int uptime(void);
-int mount(const char * const path, const char * const fstype);
+int mount(const char * const fstype, const char * const device, const char * const mountpoint);
 
 // ulib.c
 int stat(char*, struct stat*);

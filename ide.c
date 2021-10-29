@@ -29,6 +29,7 @@
 // You must hold idelock while manipulating queue.
 
 static struct spinlock idelock;
+
 static struct buf *idequeue;
 
 static int havedisk1;
@@ -36,14 +37,16 @@ static void idestart(struct buf*);
 
 // Wait for IDE disk to become ready.
 static int
-idewait(int checkerr)
+idewait(int IOPS, int checkerr)
 {
   int r;
 
-  while(((r = inb(0x1f7)) & (IDE_BSY|IDE_DRDY)) != IDE_DRDY)
+  while(((r = inb(IOPS+7)) & (IDE_BSY|IDE_DRDY)) != IDE_DRDY)
     ;
-  if(checkerr && (r & (IDE_DF|IDE_ERR)) != 0)
+  if(checkerr && (r & (IDE_DF|IDE_ERR)) != 0) {
+    cprintf("Some IDE error: %x %x\n",r,inb(IOPS+1));
     return -1;
+  }
   return 0;
 }
 
@@ -52,7 +55,7 @@ ideinit(void)
 {
   initlock(&idelock, "ide");
   ioapicenable(IRQ_IDE, ncpu - 1);
-  idewait(0);
+  idewait(0x1f0,0x0);
 
   // Check if disk 1 is present
   outb(0x1f6, 0xe0 | (1<<4));
@@ -65,6 +68,18 @@ ideinit(void)
 
   // Switch back to disk 0.
   outb(0x1f6, 0xe0 | (0<<4));
+  outb(0x176, 0xe0 | (0<<4));
+
+  ioapicenable(IRQ_IDE+1, ncpu - 1);
+  idewait(0x170,1);
+
+  for(int i=0; i<1000; i++){
+    if(inb(0x177) != 0){
+      cprintf("Found cdrom!\n");
+      break;
+    }
+  }
+
 }
 
 // Start the request for b.  Caller must hold idelock.
@@ -82,24 +97,41 @@ idestart(struct buf *b)
 
   if (sector_per_block > 7) panic("idestart");
 
-  idewait(0);
-  outb(0x3f6, 0);  // generate interrupt
-  outb(0x1f2, sector_per_block);  // number of sectors
-  outb(0x1f3, sector & 0xff);
-  outb(0x1f4, (sector >> 8) & 0xff);
-  outb(0x1f5, (sector >> 16) & 0xff);
-  outb(0x1f6, 0xe0 | ((b->dev&1)<<4) | ((sector>>24)&0x0f));
+  int DCR;
+  int IOPS;
+  int dev;
+
+  if(b->dev < 2) {
+    DCR = 0x3f6;
+    IOPS = 0x1f0;
+    dev = b->dev&1;
+  }
+  else {
+    DCR = 0x376;
+    IOPS = 0x170;
+    dev = (b->dev % 2);
+  }
+  
+  idewait(IOPS, 0);
+
+  outb(DCR, 0); // generate interrupt
+  outb(IOPS+2, sector_per_block);  // number of sectors
+  outb(IOPS+3, sector & 0xff);
+  outb(IOPS+4, (sector >> 8) & 0xff);
+  outb(IOPS+5, (sector >> 16) & 0xff);
+
+  outb(IOPS+6, 0xe0 | (dev<<4) | ((sector>>24)&0x0f));
   if(b->flags & B_DIRTY){
-    outb(0x1f7, write_cmd);
-    outsl(0x1f0, b->data, BSIZE/4);
+    outb(IOPS+7, write_cmd);
+    outsl(IOPS+0, b->data, BSIZE/4);
   } else {
-    outb(0x1f7, read_cmd);
+    outb(IOPS+7, read_cmd);
   }
 }
 
 // Interrupt handler.
 void
-ideintr(void)
+ideintr(int IOPS)
 {
   struct buf *b;
 
@@ -107,14 +139,14 @@ ideintr(void)
   acquire(&idelock);
   if((b = idequeue) == 0){
     release(&idelock);
-    // cprintf("spurious IDE interrupt\n");
+    cprintf("spurious IDE interrupt %x\n",IOPS);
     return;
   }
   idequeue = b->qnext;
 
   // Read data if needed.
-  if(!(b->flags & B_DIRTY) && idewait(1) >= 0)
-    insl(0x1f0, b->data, BSIZE/4);
+  if(!(b->flags & B_DIRTY) && idewait(IOPS,1) >= 0)
+    insl(IOPS+0, b->data, BSIZE/4);
 
   // Wake process waiting for this buf.
   b->flags |= B_VALID;

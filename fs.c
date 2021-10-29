@@ -228,7 +228,6 @@ static struct inode*
 iget(uint dev, uint inum, struct inode* parent)
 {
   struct inode *ip, *empty;
-
   acquire(&icache.lock);
 
   // Is the inode already cached?
@@ -539,7 +538,7 @@ dirlookup(struct inode *dp, char *name, uint *poff)
       else
         return iget(dp->dev, inum, dp);
     }
-    off++;
+    off+=sizeof(struct dirent);
   }
 
   return 0;

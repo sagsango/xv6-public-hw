@@ -63,11 +63,9 @@ int             fs_writei(struct inode*, char*, uint, uint);
 void            fs_ipopulate(struct inode* ip);
 void            fs_iupdate(struct inode*);
 
-
-
 // ide.c
 void            ideinit(void);
-void            ideintr(void);
+void            ideintr(int);
 void            iderw(struct buf*);
 
 // ioapic.c
@@ -193,7 +191,10 @@ int             copyout(pde_t*, addr_t, void*, uint64);
 void            clearpteu(pde_t *pgdir, char *uva);
 
 // procfs.c
-void            procfsinit();
+void            procfsinit(char * mountpoint);
+
+// iso9660fs.c
+void            iso9660fsinit(char * mountpoint, char * device);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

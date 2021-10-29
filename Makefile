@@ -1,12 +1,7 @@
 KERNOBJS = \
-	bio.o console.o exec.o file.o fs.o ide.o ioapic.o kalloc.o kbd.o lapic.o \
+	bio.o console.o exec.o file.o fs.o ide.o ioapic.o iso9660fs.o kalloc.o kbd.o lapic.o \
   log.o main.o mp.o pipe.o proc.o sleeplock.o spinlock.o string.o swtch.o \
-<<<<<<< HEAD
-  syscall.o sysfile.o sysproc.o trapasm.o trap.o uart.o vectors.o vm.o \
-#
-=======
   syscall.o sysfile.o procfs.o sysproc.o trapasm.o trap.o uart.o vectors.o vm.o \
->>>>>>> hw6-procfs
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
@@ -116,11 +111,7 @@ mkfs: mkfs.c fs.h
 .PRECIOUS: %.o
 
 UPROGS= \
-<<<<<<< HEAD
-	_cat _echo _forktest _grep _init _kill _ln _ls _mkdir \
-=======
 	_cat _echo _forktest _grep _init _kill _ln _ls _mkdir _mount \
->>>>>>> hw6-procfs
 	_rm _sh _stressfs _usertests _wc _zombie \
 #
 
@@ -159,7 +150,7 @@ QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
 ifndef CPUS
 CPUS := 2
 endif
-QEMUOPTS = -nic none -hda xv6.img -hdb fs.img -smp $(CPUS) -m 512 $(QEMUEXTRA)
+QEMUOPTS = -nic none -hda xv6.img -hdb fs.img -smp $(CPUS) -m 512 $(QEMUEXTRA) -hdc smalllinux.iso 
 
 qemu: fs.img xv6.img
 	$(QEMU) -serial mon:stdio $(QEMUOPTS)

@@ -84,6 +84,7 @@ bget(uint dev, uint blockno)
       b->blockno = blockno;
       b->flags = 0;
       b->refcnt = 1;
+      memset(b->data,'B',512);
       release(&bcache.lock);
       acquiresleep(&b->lock);
       return b;

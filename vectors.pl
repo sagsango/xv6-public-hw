@@ -11,7 +11,7 @@ print ".global alltraps\n";
 for(my $i = 0; $i < 256; $i++){
     # print ".global vector$i\n"; # might be useful for debugging
     print "vector$i:\n";
-    if(!($i == 8 || ($i >= 10 && $i <= 14) || $i == 17)){
+    if(!($i == 8 || ($i >= 10 && $i <= 15) || $i == 17)){
         print "  push \$0\n";
     }
     print "  push \$$i\n";
