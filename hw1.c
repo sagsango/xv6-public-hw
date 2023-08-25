@@ -31,11 +31,11 @@ int test(char* num, char *denom, char *dividend) {
     }
     else {
         close(fds[1]);
-        char result[100];
+        char result[100] = {0};
         fdgets(fds[0],result,100);
         wait();
-        char expected[100];
-        result[strlen(result)-1]=0;
+        if(strlen(result)>0)
+            result[strlen(result)-1]=0;
         if(strcmp(result,dividend)) {
             printf(1,"Got: %s\n",result);
             printf(1,"Expected: %s\n", dividend);
