@@ -6,9 +6,9 @@ int test(char* num, char *denom, char *dividend) {
     int pid=fork();
     if(pid==0) {
         dup2(fds[1],1);
-        char *argv[]={"echo",num,denom,0};
+        char *argv[]={"divide",num,denom,0};
         close(fds[0]);
-        exec("echo",argv);
+        exec("divide",argv);
     }
     else {
         close(fds[1]);
