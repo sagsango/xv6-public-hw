@@ -1,4 +1,23 @@
 #include"user.h"
+char*
+fdgets(int fd, char *buf, int max)
+{
+  int i, cc;
+  char c;
+
+  for(i=0; i+1 < max; ){
+    cc = read(fd, &c, 1);
+    if(cc < 1)
+      break;
+    buf[i++] = c;
+    if(c == '\n' || c == '\r')
+      break;
+  }
+  buf[i] = '\0';
+  return buf;
+}
+
+
 int test(char* num, char *denom, char *dividend) {
 //    printf(1,"Trying: div %s %s\n",num,denom);
     int fds[2];
@@ -13,7 +32,7 @@ int test(char* num, char *denom, char *dividend) {
     else {
         close(fds[1]);
         char result[100];
-        read(fds[0],result,100);
+        fdgets(fds[0],result,100);
         wait();
         char expected[100];
         result[strlen(result)-1]=0;
