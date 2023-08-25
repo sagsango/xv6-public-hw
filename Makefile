@@ -106,7 +106,7 @@ mkfs: mkfs.c fs.h
 
 UPROGS= \
 	_cat _echo _forktest _grep _init _kill _ln _ls _mkdir \
-	_rm _sh _stressfs _usertests _wc _zombie \
+	_rm _sh _stressfs _usertests _wc _zombie _hw1 \
 #
 
 fs.img: mkfs README $(UPROGS)
@@ -142,7 +142,7 @@ QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
 	then echo "-gdb tcp::$(GDBPORT)"; \
 	else echo "-s -p $(GDBPORT)"; fi)
 ifndef CPUS
-CPUS := 2
+CPUS := 1
 endif
 QEMUOPTS = -nic none -hda xv6.img -hdb fs.img -smp $(CPUS) -m 512 $(QEMUEXTRA)
 
