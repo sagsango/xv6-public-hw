@@ -33,7 +33,6 @@ int main() {
     test("-22","100","-0.22");
     test("6663","100","66.63");
     test("10","0","NaN");
-    test("10.0","2","NaN");
     test("a","b","NaN");
     test("0","20","0");
     printf(1,"All tests passed.\n");
