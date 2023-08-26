@@ -102,7 +102,7 @@ strtoint(const char *str, int *n)
 	{
 		if(isdigit(str[i]) != 0)
 		{
-			printf(1, "strtoint(): Please input integers only\n");
+			printf(2, "strtoint(): Please input integers only\n");
 			return -1;
 		}
 		res = res * 10 + (str[i] - '0');
@@ -171,7 +171,7 @@ floattostr(const float num, char *str)
 
 	if(inttostr(i_n, str + i) != 0)
 	{
-		printf(1, "floattostr(): int to str failed\n");
+		printf(2, "floattostr(): int to str failed\n");
 		return -1;
 	}
 
@@ -181,7 +181,7 @@ floattostr(const float num, char *str)
 
 	if(inttostr(f_n, str + i) != 0)
 	{
-		printf(1, "floattostr(): int to str failed\n");
+		printf(2, "floattostr(): int to str failed\n");
 		return -1;
 	}
 
@@ -189,63 +189,77 @@ floattostr(const float num, char *str)
 }
 
 int
-devide(const char *s_numerator, const char *s_denominator)
+divide(const char *s_numerator, const char *s_denominator, char * s_result)
 {
 	int i_numerator;
 	int i_denominator;
-	char s_result[NUMLEN];
-	int result;
+	int result, result_int, result_float;
 	int i, l;
 
 	if(strtoint(s_numerator, &i_numerator) != 0)
 	{
-		printf(1, "devide(): str to int failed\n");
+		printf(2, "divide(): str to int failed\n");
 		return -1;
 	}
 
 	if(strtoint(s_denominator, &i_denominator) != 0)
 	{
-		printf(1, "devide(): str to int failed\n");
+		printf(2, "divide(): str to int failed\n");
 		return -1;
 	}
 
 	if(i_denominator == 0)
 	{
-		printf(1, "devide(): Devison by zero is not permitted\n");
+		printf(2, "divide(): Devison by zero is not permitted\n");
 		return -1;
 	}
 
 	result =   (i_numerator * pow(10,PRECISION))  / i_denominator;
+	result_int = result / pow(10, PRECISION);
+	result_float = iabs(result) % pow(10, PRECISION);
 
-	for(i = 0; i < NUMLEN; ++i)
+	if(inttostr(result_int, s_result) != 0)
 	{
-		s_result[i] = '\0';
-	}
-
-	if(inttostr(result, s_result) != 0)
-	{
-		printf(1, "devide(): int to str failed\n");
+		printf(2, "divide(): int to str failed\n");
 		return -1;
 	}
 
-	l = strlen(s_result);
-	for(i = 0; i < PRECISION; ++i)
+	if(result_float == 0)
 	{
-		s_result[l-i] = s_result[l-i-1];
+		return 0;
 	}
-	s_result[l-PRECISION] = '.';
 
-	printf(1, "%s/%s = %s\n", s_numerator, s_denominator, s_result); 
+	l = strlen(s_result);
+	s_result[l] = '.';
+	l += 1;
+
+    if(inttostr(result_float, s_result + l) != 0)
+    {
+        printf(2, "divide(): int to str failed\n");
+        return -1;
+    }
+
 	return 0;
 }
 
 int main(int argc, char * argv[])
 {
+
+	char s_result[NUMLEN];
+	memset(s_result, 0, sizeof(s_result));
+
 	if(argc != 3)
 	{
-		printf(1, "%s <numenator_integer> <denominator_integer>", argv[0]);
+		printf(2, "%s <numenator_integer> <denominator_integer>", argv[0]);
 		exit();
 	}
-	devide(argv[1], argv[2]);
+	if (divide(argv[1], argv[2], s_result) != 0)
+	{
+		printf(1, "NaN\n");
+	}
+	else
+	{
+		printf(1, "%s\n", s_result);
+	}
 	exit();
 }
