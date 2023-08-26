@@ -193,8 +193,8 @@ divide(const char *s_numerator, const char *s_denominator, char * s_result)
 {
 	int i_numerator;
 	int i_denominator;
-	int result, result_int, result_float;
-	int i, l;
+	int result, result_sign, result_int, result_float;
+	int i, l = 0;
 
 	if(strtoint(s_numerator, &i_numerator) != 0)
 	{
@@ -210,15 +210,25 @@ divide(const char *s_numerator, const char *s_denominator, char * s_result)
 
 	if(i_denominator == 0)
 	{
-		printf(2, "divide(): Devison by zero is not permitted\n");
+		printf(2, "divide(): Divison by zero is not permitted\n");
 		return -1;
 	}
 
 	result =   (i_numerator * pow(10,PRECISION))  / i_denominator;
-	result_int = result / pow(10, PRECISION);
-	result_float = iabs(result) % pow(10, PRECISION);
+	result_sign = result < 0 ? -1 : +1;
 
-	if(inttostr(result_int, s_result) != 0)
+	result = iabs(result);
+
+	result_int = result / pow(10, PRECISION);
+	result_float = result % pow(10, PRECISION);
+
+	if(result_sign == -1)
+	{
+		s_result[l] = '-';
+		l += 1; 
+	}
+
+	if(inttostr(result_int, s_result+l) != 0)
 	{
 		printf(2, "divide(): int to str failed\n");
 		return -1;
@@ -227,6 +237,11 @@ divide(const char *s_numerator, const char *s_denominator, char * s_result)
 	if(result_float == 0)
 	{
 		return 0;
+	}
+
+	if(result_float % 10 == 0)
+	{
+		result_float /= 10;
 	}
 
 	l = strlen(s_result);
