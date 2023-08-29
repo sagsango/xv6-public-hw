@@ -291,8 +291,8 @@ tar:
 
 
 bootskel.img: bootskel.S
-	as bootskel.S -o bootskel.o
-	ld -Ttext=0x7c00 -e start bootskel.o -o bootskellinked.o
-	objcopy -O binary bootskellinked.o bootskel.img
+	$(AS) bootskel.S -o bootskel.o
+	$(LD) -Ttext=0x7c00 -e start bootskel.o -o bootskellinked.o
+	$(OBJCOPY) -O binary bootskellinked.o bootskel.img
 
 .PHONY: dist-test dist
