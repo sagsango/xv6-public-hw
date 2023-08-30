@@ -1,0 +1,10 @@
+1. write bootdemo.S
+NOT_NEEDED 2. $ x86_64-elf-as bootdemo.S
+3. $ x86_64-elf-as bootdemo.S -o bootdemo.o # aseemble it
+4. see the size of the bootdemo.o
+5. $ x86_64-elf-ld bootdemo.o -o bootdemo # link it
+6. $ x86_64-elf-objdump -S bootdemo # not needed
+7. $ hexdump bootdemo # not needed
+8. $ x86_64-elf-objcopy bootdemo -O binary bootdemo_sector # same is in Makefile
+9. $ ls -l  bootdemo_sector # 12 Bytes
+10. $ qemu-system-i386 -hda bootdemo_sector                  # linux - $ qemu-system-x86_64
