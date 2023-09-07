@@ -1,9 +1,5 @@
 .code16
 .global _start
-.data
-msg:
-	.string "Hello"
-	len = . - msg
 _start:
 	mov 0, %ds
 #mov 0, %es
@@ -16,13 +12,19 @@ _start:
 	mov $0x0, %dh
 	mov $0x0, %dl
 # XXX: ES:BP = pointer to string
-# mov %ds, %es XXX: Why this is giving error?
+#mov %ds, %es # XXX: Why this is giving error?
 #mov msg, %es:(%bp)  # XXX: Address Not Sure!!
-	mov msg, %bp
+	push %bp
+	push msg
+	mov %sp, %bp
 	int $0x10
 
 loop:
     jmp loop
+
+msg:
+	.string "Hello"
+	len = . - msg
 
 # .org 510 # This will also work fine because 0x1fe = 510
 .org 0x1fe

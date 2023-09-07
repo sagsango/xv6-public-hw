@@ -219,4 +219,16 @@ tar:
 	cp dist/* dist/.gdbinit.tmpl /tmp/xv6
 	(cd /tmp; tar cf - xv6) | gzip >xv6-rev10.tar.gz  # the next one will be 10 (9/17)
 
+bootdemo: bootdemo.S
+	x86_64-elf-as bootdemo.S -o bootdemo.o
+	x86_64-elf-ld -Ttext 0 bootdemo.o -o bootdemo
+	x86_64-elf-objcopy bootdemo -O binary bootdemo_sector
+	qemu-system-i386 -hda bootdemo_sector
+
+bootdemo_gdb:
+	x86_64-elf-as bootdemo.S -o bootdemo.o
+	x86_64-elf-ld bootdemo.o -o bootdemo
+	x86_64-elf-objcopy bootdemo -O binary bootdemo_sector
+	qemu-system-i386 -nographic -s -S -hda bootdemo_sector
+
 .PHONY: dist-test dist
