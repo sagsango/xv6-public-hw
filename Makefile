@@ -40,7 +40,8 @@ LDFLAGS = -m elf_x86_64 -nostdlib
 xv6.img: bootblock kernel fs.img
 	dd if=/dev/zero of=xv6.img count=10000
 	dd if=bootblock of=xv6.img conv=notrunc
-	dd if=kernel of=xv6.img seek=1 conv=notrunc
+	# dd if=kernel of=xv6.img seek=1 conv=notrunc
+	dd if=cover.raw of=xv6.img seek=1 conv=notrunc
 
 xv6memfs.img: bootblock kernelmemfs
 	dd if=/dev/zero of=xv6memfs.img count=10000
