@@ -188,6 +188,12 @@ cgaputc(int c, int color)
   crt[pos] = ' ' | 0x0700;
 }
 
+/*
+XXX:
+   This is the first wrapper above the device drivers
+   and all the other code is using this wrapper to
+   print the chars on the console.
+*/
   void
 consputc(int c, int color)
 {

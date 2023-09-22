@@ -11,7 +11,16 @@ int
 main(void)
 {
   int pid, wpid;
+  /*
+XXX:
+	See here is the first time we open
+	the console device file.
 
+	And device file is a medium to get to the device drivers
+	Before this how we were printing the content on screen?
+	example "cprintf()" do not use the device file or 1/2 device fd
+	to print out the result.
+*/
   if(open("console", O_RDWR) < 0){
     mknod("console", 1, 1); // the second argument is CONSOLE = 1
     open("console", O_RDWR);

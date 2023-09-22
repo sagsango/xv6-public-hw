@@ -34,6 +34,15 @@ main(void)
   ideinit();       // disk
   startothers();   // start other processors
   kinit2(P2V(4*1024*1024), P2V(PHYSTOP)); // must come after startothers()
+  /*
+XXX:
+	userinit() calls the init which 1st times open the console file,
+	which is a device file and we can use 1/2 file discripter to
+	write something on console from the user program (kernel do not have to use
+	these device file discripter because they directly have access to device 
+	drivers, cprintf() directly uses the device driver whichout needing any
+	device file (1/2).
+*/
   userinit();      // first user process
   mpmain();        // finish this processor's setup
 }
