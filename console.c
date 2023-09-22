@@ -153,6 +153,40 @@ panic(char *s)
 #define CRTPORT 0x3d4
 static ushort *crt = (ushort*)P2V(0xb8000);  // CGA memory
 
+/*
+   Lets understand the cgaputc() line by line.
+
+   The code snippet you've provided is a part of the `cgaputc` function in the xv6 operating system. This function is responsible for putting a character on the screen in text mode using a VGA-compatible character cell display. Here's an explanation of what this code does:
+
+1. `int pos;`: Declares an integer variable `pos` to store the current cursor position on the screen.
+
+2. Cursor Position Calculation:
+   - `outb(CRTPORT, 14);`: Writes the value 14 to the CRT controller's I/O port. This indicates that we want to read the high byte of the cursor position.
+   - `pos = inb(CRTPORT+1) << 8;`: Reads the high byte of the cursor position from the CRT controller's data port and shifts it left by 8 bits.
+   - `outb(CRTPORT, 15);`: Writes the value 15 to the CRT controller's I/O port. This indicates that we want to read the low byte of the cursor position.
+   - `pos |= inb(CRTPORT+1);`: Reads the low byte of the cursor position from the CRT controller's data port and combines it with the high byte to get the complete cursor position.
+
+3. Character Handling:
+   - `if (c == '\n')`: Checks if the character `c` is a newline (`'\n'`). If so, it increments the cursor position to the start of the next line (rolling over to the next row).
+   - `else if (c == BACKSPACE)`: Checks if the character is a backspace (`BACKSPACE`). If so, it moves the cursor position one character back (left) if it's not already at the beginning of the line.
+   - Otherwise, if the character is a regular printable character:
+     - It writes the character to the screen buffer at the current cursor position.
+     - The character is combined with the specified `color` and stored in the `crt` array, which represents the screen buffer. The `color` argument determines the text color and background color of the character.
+
+4. Scrolling:
+   - `if ((pos/80) >= 24)`: Checks if the cursor position is at or beyond the last row of the screen (24 rows in total). If so, it's time to scroll the screen up to make room for more text.
+   - `memmove(crt, crt+80, sizeof(crt[0])*23*80);`: Moves the entire screen content up by one row (80 characters per row) using `memmove`. This effectively scrolls the screen up by one row.
+   - `pos -= 80;`: Decrements the cursor position by 80 to account for the scrolled-up rows.
+   - `memset(crt+pos, 0, sizeof(crt[0])*(24*80 - pos));`: Clears the newly created empty row at the bottom of the screen by setting it to spaces with the default text color.
+
+5. Updating Cursor Position:
+   - `outb(CRTPORT, 14);` and `outb(CRTPORT, 15);`: These two lines again select the cursor position high and low bytes for writing.
+   - `outb(CRTPORT+1, pos>>8);` and `outb(CRTPORT+1, pos);`: These lines write the high and low bytes of the updated cursor position to the CRT controller.
+
+6. Finally, the cursor position in the `crt` buffer is set to a space character with the default text color, effectively erasing any character that was scrolled off the screen.
+
+In summary, this code is responsible for handling the placement of characters on the screen in a text-based VGA display, including scrolling when the screen is full. It also manages the cursor position and ensures that characters are displayed correctly on the screen with the specified colors.
+*/
   static void
 cgaputc(int c, int color)
 {
