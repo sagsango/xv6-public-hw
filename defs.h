@@ -29,6 +29,10 @@ void            consoleintr(int(*)(void));
 int             consoleioctl(struct file *,int,int);
 void            panic(char*) __attribute__((noreturn));
 
+//vga.c
+void 			displayinit(void);
+int         	displayioctl(struct file *,int,int);
+
 // exec.c
 int             exec(char*, char**);
 
