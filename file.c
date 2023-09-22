@@ -81,6 +81,11 @@ fileclose(struct file *f)
   }
 }
 
+/*
+   @flow from	:	"sys_ioctl()" of sysfile.c
+   @flow to 	: 	respative ioctal of device type
+   					Example for the CONSOLE device, it will flow to the "consoleioctl()".
+*/
 int
 fileioctl(struct file *f, int param, int value) {  
 

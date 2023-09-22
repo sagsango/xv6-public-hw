@@ -152,6 +152,16 @@ static addr_t (*syscalls[])(void) = {
 [SYS_ioctl]   sys_ioctl,
 };
 
+/*
+XXX:
+	Here are the kernel code for the system calls
+
+	@flow from 	: usys.S
+	@flow to	: appropriate function listed above
+	              example: all the file system related systems calles goes to sysfile.c
+				 		   for ioctal -> sys_ioctal in sysfile.c
+*/
+
 void
 syscall(struct trapframe *tf)
 {

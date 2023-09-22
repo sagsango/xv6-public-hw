@@ -3,6 +3,17 @@
 struct stat;
 struct rtcdate;
 
+/* XXX:
+   Here all the system call api are give
+   They are accessible to user and are the
+   top level function to start the system call
+
+   Now from here flow goes to the usys.S
+   
+   @flow from	: multiple user program
+   @flow to		: usys.S
+*/
+
 // system calls
 int fork(void);
 int exit(void) __attribute__((noreturn));

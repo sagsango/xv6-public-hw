@@ -103,6 +103,10 @@ sys_close(void)
   return 0;
 }
 
+/*
+   @flow from	: "syscall" in syscall.c
+   @flow to 	: "fileioctl()" in file.c
+*/
 int
 sys_ioctl(void) 
 {
