@@ -17,9 +17,14 @@
 #include "proc.h"
 #include "x86.h"
 
-static void consputc(int);
+#define DEFAULT_CONSOLE_COLOR 0x0700  // gray on black
+#define SET_FD_COLOR 0
+#define SET_GLOBAL_COLOR 1
+
+static void consputc(int, int);
 
 static int panicked = 0;
+static int global_color = DEFAULT_CONSOLE_COLOR;
 
 static struct {
   struct spinlock lock;
@@ -29,23 +34,23 @@ static struct {
 static char digits[] = "0123456789abcdef";
 
   static void
-print_x64(addr_t x)
+print_x64(addr_t x, int color)
 {
   int i;
   for (i = 0; i < (sizeof(addr_t) * 2); i++, x <<= 4)
-    consputc(digits[x >> (sizeof(addr_t) * 8 - 4)]);
+    consputc(digits[x >> (sizeof(addr_t) * 8 - 4)], color);
 }
 
   static void
-print_x32(uint x)
+print_x32(uint x, int color)
 {
   int i;
   for (i = 0; i < (sizeof(uint) * 2); i++, x <<= 4)
-    consputc(digits[x >> (sizeof(uint) * 8 - 4)]);
+   consputc(digits[x >> (sizeof(uint) * 8 - 4)], color);
 }
 
   static void
-print_d(int v)
+print_d(int v, int color)
 {
   char buf[16];
   int64 x = v;
@@ -63,7 +68,7 @@ print_d(int v)
     buf[i++] = '-';
 
   while (--i >= 0)
-    consputc(buf[i]);
+    consputc(buf[i], color);
 }
 //PAGEBREAK: 50
 
@@ -86,7 +91,7 @@ cprintf(char *fmt, ...)
 
   for (i = 0; (c = fmt[i] & 0xff) != 0; i++) {
     if (c != '%') {
-      consputc(c);
+      consputc(c, global_color);
       continue;
     }
     c = fmt[++i] & 0xff;
@@ -94,27 +99,27 @@ cprintf(char *fmt, ...)
       break;
     switch(c) {
     case 'd':
-      print_d(va_arg(ap, int));
+      print_d(va_arg(ap, int), global_color);
       break;
     case 'x':
-      print_x32(va_arg(ap, uint));
+      print_x32(va_arg(ap, uint), global_color);
       break;
     case 'p':
-      print_x64(va_arg(ap, addr_t));
+      print_x64(va_arg(ap, addr_t), global_color);
       break;
     case 's':
       if ((s = va_arg(ap, char*)) == 0)
         s = "(null)";
       while (*s)
-        consputc(*(s++));
+        consputc(*(s++), global_color);
       break;
     case '%':
-      consputc('%');
+      consputc('%', global_color);
       break;
     default:
       // Print unknown % sequence to draw attention.
-      consputc('%');
-      consputc(c);
+      consputc('%', global_color);
+      consputc(c, global_color);
       break;
     }
   }
@@ -149,7 +154,7 @@ panic(char *s)
 static ushort *crt = (ushort*)P2V(0xb8000);  // CGA memory
 
   static void
-cgaputc(int c)
+cgaputc(int c, int color)
 {
   int pos;
 
@@ -163,8 +168,12 @@ cgaputc(int c)
     pos += 80 - pos%80;
   else if (c == BACKSPACE) {
     if (pos > 0) --pos;
-  } else
-    crt[pos++] = (c&0xff) | 0x0700;  // gray on black
+  } else {
+	//if (color == 0) {
+	//	color = DEFAULT_CONSOLE_COLOR;
+	//}
+    crt[pos++] = (c&0xff) | color;  // it used be gray on black
+  }
 
   if ((pos/80) >= 24){  // Scroll up.
     memmove(crt, crt+80, sizeof(crt[0])*23*80);
@@ -180,7 +189,7 @@ cgaputc(int c)
 }
 
   void
-consputc(int c)
+consputc(int c, int color)
 {
   if (panicked) {
     cli();
@@ -192,7 +201,7 @@ consputc(int c)
     uartputc('\b'); uartputc(' '); uartputc('\b');
   } else
     uartputc(c);
-  cgaputc(c);
+  cgaputc(c, color);
 }
 
 #define INPUT_BUF 128
@@ -224,20 +233,20 @@ consoleintr(int (*getc)(void))
       while(input.e != input.w &&
           input.buf[(input.e-1) % INPUT_BUF] != '\n'){
         input.e--;
-        consputc(BACKSPACE);
+        consputc(BACKSPACE, 0);
       }
       break;
     case C('H'): case '\x7f':  // Backspace
       if (input.e != input.w) {
         input.e--;
-        consputc(BACKSPACE);
+        consputc(BACKSPACE, 0);
       }
       break;
     default:
       if (c != 0 && input.e-input.r < INPUT_BUF) {
         c = (c == '\r') ? '\n' : c;
         input.buf[input.e++ % INPUT_BUF] = c;
-        consputc(c);
+        consputc(c, global_color);
         if (c == '\n' || c == C('D') || input.e == input.r+INPUT_BUF) {
           input.w = input.e;
           wakeup(&input.r);
@@ -288,8 +297,19 @@ consoleread(struct file *f, char *dst, int n)
 int
 consoleioctl(struct file *f, int param, int value)
 {
-  cprintf("Got unknown console ioctl request. %d = %d\n",param,value);
-  return -1;
+  switch(param)
+  {
+	  case SET_FD_COLOR:
+	 f->dev_payload = value * 16 * 16; /* Why not shift operator? Because it is more relateable to hexadecimal representation */
+	 break;
+	  case SET_GLOBAL_COLOR:
+	 global_color = value * 16 * 16;
+	 break;
+	  default:
+	 cprintf("Got unknown console ioctl request. %d = %d\n",param,value);
+	 return -1;
+  }
+  return 0;
 }
 
 int
@@ -299,7 +319,7 @@ consolewrite(struct file *f, char *buf, int n)
 
   acquire(&cons.lock);
   for(i = 0; i < n; i++)
-    consputc(buf[i] & 0xff);
+    consputc(buf[i] & 0xff, (int)f->dev_payload);
   release(&cons.lock);
 
   return n;
