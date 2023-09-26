@@ -4,6 +4,7 @@
 #include "types.h"
 #include "x86.h"
 #include "memlayout.h"
+#include "vga.h"
 
 
 /* This is the standard 256-color palette, in 0xRRGGBB format. Of course the VGA registers want 6 bits, not 8 per channel, so we do a bit
@@ -382,6 +383,13 @@ void cgaRestorePalette()
 {
   // restore the saved cga palette with vgaSetPalette
   // TODO: Your code here:
+   for(int index=0; index<256; index++) {
+     int value = cga256[index];
+     vgaSetPalette(index,
+          (value>>18)&0x3f,
+          (value>>10)&0x3f,
+          (value>>2)&0x3f);
+   }
 }
 
 void vgaMode13() {

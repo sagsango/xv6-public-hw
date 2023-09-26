@@ -28,6 +28,17 @@ void            cprintf(char*, ...);
 void            consoleintr(int(*)(void));
 int             consoleioctl(struct file *,int,int);
 void            panic(char*) __attribute__((noreturn));
+struct cursor{
+	int pos;
+	int start;
+	int end;
+};
+void            get_cursor(struct cursor*);
+void            restore_cursor(struct cursor*);
+
+//vga.c
+void            displayinit(void);
+int             displayioctl(struct file *,int,int);
 
 // exec.c
 int             exec(char*, char**);
