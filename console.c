@@ -334,22 +334,22 @@ consoleread(struct file *f, char *dst, int n)
   return target - n;
 }
 
-int
+	int
 consoleioctl(struct file *f, int param, int value)
 {
-  switch(param)
-  {
-	  case SET_FD_COLOR:
-	 f->dev_payload = value * 16 * 16; /* Why not shift operator? Because it is more relateable to hexadecimal representation */
-	 break;
-	  case SET_GLOBAL_COLOR:
-	 global_color = value * 16 * 16;
-	 break;
-	  default:
-	 cprintf("Got unknown console ioctl request. %d = %d\n",param,value);
-	 return -1;
-  }
-  return 0;
+	switch(param)
+	{
+		case SET_FD_COLOR:
+			f->dev_payload = value * 16 * 16; /* Why not shift operator? Because it is more relateable to hexadecimal representation */
+			break;
+		case SET_GLOBAL_COLOR:
+			global_color = value * 16 * 16;
+			break;
+		default:
+			cprintf("Got unknown console ioctl request. %d = %d\n",param,value);
+			return -1;
+	}
+	return 0;
 }
 
 int
@@ -376,4 +376,35 @@ consoleinit(void)
   cons.locking = 1;
 
   ioapicenable(IRQ_KBD, 0);
+
 }
+
+	void 
+restore_cursor_position(int cpos)
+{
+	acquire(&input.lock);
+	/* Show cursor */
+	outb(0x3D4, 0x0A);
+	outb(0x3D5, (inb(0x3D5) & 0xC0));
+	outb(0x3D4, 0x0B);
+	outb(0x3D5, (inb(0x3E0) & 0xE0));
+
+	/* Put at old place */
+    outb(CRTPORT, 14);
+    outb(CRTPORT+1, cpos >> 8);
+    outb(CRTPORT, 15);
+    outb(CRTPORT+1, cpos);
+	release(&input.lock);
+}
+
+	void
+get_cursor_position(int *cpos) {
+	*cpos = 0;
+	acquire(&input.lock);
+	outb(CRTPORT, 14);
+	*cpos |= inb(CRTPORT+1) << 8;
+	outb(CRTPORT, 15);
+	*cpos |= inb(CRTPORT+1);
+	release(&input.lock);
+}
+
