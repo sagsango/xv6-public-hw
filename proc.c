@@ -36,6 +36,7 @@ allocproc(void)
 {
   struct proc *p;
   char *sp;
+	int i;
 
   acquire(&ptable.lock);
 
@@ -74,6 +75,13 @@ found:
   p->context->rip = (addr_t)forkret;
 
   // TODO: hw4: initialize the mmap metadata for each new process
+	p->mmaptop = MMAPBASE;
+	p->mmapcount = 0;
+	for (i = 0; i < 10; ++i)
+	{
+		p->mmaps[i].fd = -1;
+		p->mmaps[i].start = -1;
+	}
 
   return p;
 }
