@@ -472,9 +472,80 @@ copyout(pde_t *pgdir, addr_t va, void *p, uint64 len)
 void
 dedup(void *vstart, void *vend)
 {
+	/* So what have we learned?
+		 1. physical_a <-> kernel_va <- process_va
+		 2. physical_a & kernel_va:
+		 		a. P2V converts physical_a -> k_va
+		 		b. V2P converts k_va -> physical_a
+		 4. kernel_va & process_va
+		 		a. you can only go from process_va to kernel_va using process's page-table
+				b. process_va -> kernel_va : use process page table
+				c. kernel_va -> process_va : no mapping present!!!!
+	*/
+	void *va_cur, *va_prv;
+	pte_t *pte_cur, *pte_prv;
+	addr_t cur_frame, prv_frame;
+	for(va_cur = vstart; va_cur <= vend; va_cur += PGSIZE){
+		pte_cur = walkpgdir(proc->pgdir, va_cur, 0);
+		if(!(*pte_cur & PTE_P)){
+			continue;
+		}
+		cur_frame = PTE_ADDR(*pte_cur);
+		for(va_prv = vstart; va_prv < va_cur; va_prv += PGSIZE){
+			pte_prv = walkpgdir(proc->pgdir, va_prv, 0);
+			if(!(*pte_prv & PTE_P)){
+				continue;
+			}
+			prv_frame = PTE_ADDR(*pte_prv);
+			if(frames_are_identical(cur_frame, prv_frame)){
+					kretain(P2V(prv_frame));
+					krelease(P2V(cur_frame));
+					if (*pte_prv & PTE_W){
+						*pte_prv ^= PTE_W;
+					}
+					*pte_cur = *pte_prv;
+					break;
+			}
+		}
+	}
+  return;
+}
+/*
+void
+dedup(void *vstart, void *vend)
+{
+  char *va_cur, *va_prv, *va_end;
+  pte_t *pte_cur, *pte_prv;
+  addr_t cur_frame, prv_frame;
+
+	if (vstart != PGROUNDDOWN((addr_t)(vstart)))
+		return;
+	if (vend != PGROUNDDOWN((addr_t)vend))
+		return;
+
+	va_cur = PGROUNDDOWN((addr_t)(vstart));
+	va_end = PGROUNDDOWN((addr_t)(vend));
+  for(; va_cur <= vend; va_cur += PGSIZE){
+    pte_cur = walkpgdir(proc->pgdir, va_cur, 0);
+    if(!(*pte_cur & PTE_P)){
+      continue;
+      //cprintf("pte_cur:%x\n", pte_cur);
+    }
+    cur_frame = PTE_ADDR(*pte_cur);
+    //cprintf("cur_frameinfo=%d\n", krefcount(P2V(cur_frame)));
+    cprintf("cur_frame:%x\n", cur_frame);
+    for(va_prv = vstart; va_prv < va_cur; va_prv += PGSIZE*8*8*8){
+      pte_prv = walkpgdir(proc->pgdir, va_prv, 0);
+      if(!(*pte_prv & PTE_P)){
+        continue;
+        //cprintf("pte_cur:%x\n", pte_prv);
+      }
+    }
+  }
   cprintf("didn't dedup anything\n");
   return;
 }
+*/
 
 /* maybe perform copy-on-write on the page that contains virtual address v. 
    returns 1 if copy-on-write was performed, 0 otherwise. */
