@@ -78,7 +78,7 @@ trap(struct trapframe *tf)
     break;
 
   case T_PGFLT: // at least a write: copyonwrite may copy the page
-    if ((tf->err & 2) && copyonwrite((char *)rcr2()))
+    if ((tf->err == 7 || tf->err == 5) && copyonwrite((char *)rcr2()))
       break;
     // else fall-through to default:
   //PAGEBREAK: 13
