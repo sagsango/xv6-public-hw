@@ -414,13 +414,15 @@ copyuvm(pde_t *pgdir, uint sz)
     if(!(*pte & PTE_P))
       panic("copyuvm: page not present");
     pa = PTE_ADDR(*pte);
+    if (*pte & PTE_W)
+      *pte ^= PTE_W;
     flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
-      goto bad;
-    memmove(mem, (char*)P2V(pa), PGSIZE);
+    mem = P2V(pa);
+    kretain(P2V(pa));
     if(mappages(d, (void*)i, PGSIZE, V2P(mem), flags) < 0)
       goto bad;
   }
+  lcr3(V2P(pgdir)); /* XXX: Most imp thing!!!!!!!!!!!!!!!!!!!! */
   return d;
 
 bad:
