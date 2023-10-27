@@ -546,7 +546,7 @@ copyonwrite(char* v)
 	int perm;
 
 	pte = walkpgdir(proc->pgdir, v, 0);
-	if (!*pte || !(*pte & PTE_COW)) {
+	if (!pte || !(*pte & PTE_COW)) {
 		cprintf("copyonwrite() can not handle this page-fault\n");
 		return 0;
 	}
