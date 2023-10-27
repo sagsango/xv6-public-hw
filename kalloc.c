@@ -107,11 +107,27 @@ krelease(char *v)
     kfree(P2V(frame));
 }
 
+void
+kreleasen(char *v, int n)
+{
+  addr_t frame = V2P(v);
+  frameinfo[PGINDEX(frame)].refs -= n;
+  if (frameinfo[PGINDEX(frame)].refs == 0)
+    kfree(P2V(frame));
+}
+
   void
 kretain(char *v)
 {
   addr_t frame = V2P(v);
   frameinfo[PGINDEX(frame)].refs++;
+}
+
+  void
+kretainn(char *v, int n)
+{
+  addr_t frame = V2P(v);
+  frameinfo[PGINDEX(frame)].refs += n;
 }
 
   int

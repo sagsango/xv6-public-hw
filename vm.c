@@ -472,8 +472,60 @@ copyout(pde_t *pgdir, addr_t va, void *p, uint64 len)
 void
 dedup(void *vstart, void *vend)
 {
-  cprintf("didn't dedup anything\n");
-  return;
+	/* So what have we learned?
+			1. physical_a <-> kernel_va <- process_va
+			2. physical_a & kernel_va:
+					a. P2V converts physical_a -> k_va
+					b. V2P converts k_va -> physical_a
+			4. kernel_va & process_va
+					a. you can only go from process_va to kernel_va using process's page-table
+					b. process_va -> kernel_va : use process page table
+					c. kernel_va -> process_va : no mapping present!!!!
+	*/
+	void *va_cur, *va_prv;
+	pte_t *pte_cur, *pte_prv;
+	addr_t cur_frame, prv_frame;
+	int cur_perm, prv_perm, num_ref;
+
+	for (va_cur = vstart; va_cur <= vend; va_cur += PGSIZE) {
+		pte_cur = walkpgdir(proc->pgdir, va_cur, 0);
+
+		if (!*pte_cur || !(*pte_cur & PTE_P)) {
+			continue;
+		}
+
+		cur_frame = PTE_ADDR(*pte_cur);
+		cur_perm = PTE_FLAGS(*pte_cur);
+
+		update_checksum(cur_frame);
+
+		for (va_prv = vstart; va_prv < va_cur; va_prv += PGSIZE) {
+			pte_prv = walkpgdir(proc->pgdir, va_prv, 0);
+
+			if (!*pte_prv || !(*pte_prv & PTE_P)) {
+				continue;
+			}
+
+			prv_frame = PTE_ADDR(*pte_prv);
+			prv_perm = PTE_FLAGS(*pte_prv);
+
+			if (((cur_perm ^ prv_perm) == 0 || (cur_perm ^ prv_perm) == PTE_W) &&
+					frames_are_identical(cur_frame, prv_frame)) {
+
+					num_ref = krefcount(P2V(cur_frame));
+					kretainn(P2V(prv_frame), num_ref);
+					kreleasen(P2V(cur_frame), num_ref);
+
+					if (*pte_prv & PTE_W) {
+						*pte_prv ^= PTE_W;
+					}
+
+					*pte_cur = *pte_prv;
+					break;
+			}
+		}
+	}
+	return;
 }
 
 /* maybe perform copy-on-write on the page that contains virtual address v. 
@@ -481,6 +533,30 @@ dedup(void *vstart, void *vend)
 int
 copyonwrite(char* v)
 {
-  cprintf("didn't copyonwrite anything\n");
-  return 0;
+	/* so we have handled this trap: [Quiz prep :)]
+		 pid 4 dedup_writer: trap 14 err 7 on cpu 0 rip 0x0000000000001337 addr 0x0000000000006000--kill proc */
+	pte_t *pte;
+	char *old_frame, *new_frame, *mem;
+	int perm;
+
+	pte = walkpgdir(proc->pgdir, v, 0);
+	if (!*pte || !(*pte  & PTE_P) || (*pte & PTE_W)) {
+		cprintf("copyonwrite() can not handle this page-fault\n");
+		return 0;
+	}
+
+	old_frame = PTE_ADDR(*pte);
+	perm = PTE_FLAGS(*pte);
+	mem = kalloc();
+	new_frame = V2P(mem);
+
+	memmove(P2V(new_frame), P2V(old_frame), PGSIZE);
+	*pte = (addr_t)new_frame | perm | PTE_W;
+	krelease(P2V(old_frame));
+	/* NOTE: old_frame refcount = 1 (this is the last one),
+					 then we would have saved some computation
+					 by only setting write bit,
+					 but this code looks cleaner */
+
+  return 1;
 }
