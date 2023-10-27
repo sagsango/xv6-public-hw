@@ -514,9 +514,10 @@ dedup(void *vstart, void *vend)
 			if (((cur_perm ^ prv_perm) == 0 || (cur_perm ^ prv_perm) == PTE_W) &&
 					frames_are_identical(cur_frame, prv_frame)) {
 
-					num_ref = krefcount(P2V(cur_frame));
-					kretainn(P2V(prv_frame), num_ref);
-					kreleasen(P2V(cur_frame), num_ref);
+					/* XXX: Here refcount of the cur_frame can be greater than
+					        one but we are updating the pte one by one */
+					kretain(P2V(prv_frame));
+					krelease(P2V(cur_frame));
 
 					if (*pte_prv & PTE_W) {
 						*pte_prv ^= PTE_W;
