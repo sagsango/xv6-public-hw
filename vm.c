@@ -482,41 +482,56 @@ dedup(void *vstart, void *vend)
 				b. process_va -> kernel_va : use process page table
 				c. kernel_va -> process_va : no mapping present!!!!
 	*/
-	//cprintf("dedup_called\n");
 	void *va_cur, *va_prv;
 	pte_t *pte_cur, *pte_prv;
 	addr_t cur_frame, prv_frame;
+	int cur_perm, prv_perm;
 
 	for(va_cur = vstart; va_cur <= vend; va_cur += PGSIZE){
 		pte_cur = walkpgdir(proc->pgdir, va_cur, 0);
+
 		if(!*pte_cur || !(*pte_cur & PTE_P)){
 			continue;
 		}
+
 		cur_frame = PTE_ADDR(*pte_cur);
+		cur_perm = PTE_FLAGS(*pte_cur);
+
 		if(!(*pte_cur & PTE_W)){
 			//cprintf("Updating checksum of non writable page\n");
 		}
 
 		update_checksum(cur_frame);
-		//cprintf("Written checksum\n");
-		int x = krefcount(P2V(cur_frame));
-		if( x > 1)
-			continue;
+
 		for(va_prv = vstart; va_prv < va_cur; va_prv += PGSIZE){
 			pte_prv = walkpgdir(proc->pgdir, va_prv, 0);
+
 			if(!*pte_prv || !(*pte_prv & PTE_P)){
 				continue;
 			}
+
 			prv_frame = PTE_ADDR(*pte_prv);
-			if(frames_are_identical(cur_frame, prv_frame)){
-				//cprintf("Ideintial:[%x,%x]\n", cur_frame, prv_frame);
-					int x = krefcount(P2V(cur_frame));
-					while (x > 0){
+			prv_perm = PTE_FLAGS(*pte_prv);
+
+			int z = krefcount(P2V(cur_frame));
+			if(z > 1)
+				continue;
+
+			if(((cur_perm ^ prv_perm) == 0 || (cur_perm ^ prv_perm) == PTE_W) &&
+					frames_are_identical(cur_frame, prv_frame) ){
+					int x = cur_perm & PTE_U;
+					int y = prv_perm & PTE_U;
+				  if(x^y){
+						panic("!PTE_U");
+					}
+					//cprintf("Ideintial:[%x,%x]\n", cur_frame, prv_frame);
+					int z = krefcount(P2V(cur_frame));
+					while (z > 0){
+						//cprintf("ref_cnt:%d", z);
 						kretain(P2V(prv_frame));
 						krelease(P2V(cur_frame));
-						x -= 1;
+						z = z - 1;
 					}
-					//cprintf("ref:[%x,%x]\n", krefcount(P2V(cur_frame)), krefcount(P2V(prv_frame)));
 					if (*pte_prv & PTE_W){
 						*pte_prv ^= PTE_W;
 					}
@@ -530,7 +545,6 @@ dedup(void *vstart, void *vend)
 			}
 		}
 	}
-	//cprintf("Done dedup\n");
   return;
 }
 
@@ -544,26 +558,28 @@ copyonwrite(char* v)
 	*/
 	pte_t *pte;
   char *old_frame, *new_frame, *mem;
+	int perm;
 
 	pte = walkpgdir(proc->pgdir, v, 0);
 	if(!*pte || !(*pte  & PTE_P) || (*pte & PTE_W)){
-		cprintf("error on page-fault\n");
-		return 0;//return 1;
-	}
-
-	if((*pte & PTE_W)){
-		cprintf("End of the words\n");
+		int x = 0;
+		if(!*pte) x = 1;
+		else if(!(*pte & PTE_P)) x = 2;
+		else if(*pte & PTE_W) x = 3;
+		cprintf("error on page-fault, %d, %d, %d\n", x, (*pte & PTE_P), (*pte & PTE_U));
 		return 0;
 	}
 
 	old_frame = PTE_ADDR(*pte);
+	perm = PTE_FLAGS(*pte);
 	mem = kalloc();
 	new_frame = V2P(mem);
 
 	//cprintf("va:%x, flag:%d, ref:%d", old_frame, (*pte & PTE_W), krefcount(P2V(old_frame)));
 
 	memmove(P2V(new_frame), P2V(old_frame), PGSIZE);
-	*pte = (addr_t)new_frame | PTE_P| PTE_U | PTE_FLAGS(*pte) | PTE_W;
+ //	*pte = (addr_t)new_frame | perm | PTE_P| PTE_U | PTE_W;
+	*pte = (addr_t)new_frame | perm | PTE_W;
 	krelease(P2V(old_frame));
 	/* NOTE: old_frame refcount = 1 (this is the last one),
 		 			 then we would have saved some computation
