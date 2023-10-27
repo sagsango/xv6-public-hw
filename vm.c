@@ -416,13 +416,14 @@ copyuvm(pde_t *pgdir, uint sz)
     pa = PTE_ADDR(*pte);
     if (*pte & PTE_W)
       *pte ^= PTE_W;
+		*pte |= PTE_COW;
     flags = PTE_FLAGS(*pte);
     mem = P2V(pa);
     kretain(P2V(pa));
     if(mappages(d, (void*)i, PGSIZE, V2P(mem), flags) < 0)
       goto bad;
   }
-  lcr3(V2P(pgdir)); /* XXX: Most imp thing!!!!!!!!!!!!!!!!!!!! */
+  switchuvm(proc); /* XXX: Most imp thing!!!!!!!!!!!!!!!!!!!! */
   return d;
 
 bad:
@@ -523,6 +524,8 @@ dedup(void *vstart, void *vend)
 						*pte_prv ^= PTE_W;
 					}
 
+					*pte_prv |= PTE_COW;
+
 					*pte_cur = *pte_prv;
 					break;
 			}
@@ -543,18 +546,18 @@ copyonwrite(char* v)
 	int perm;
 
 	pte = walkpgdir(proc->pgdir, v, 0);
-	if (!*pte || !(*pte  & PTE_P) || (*pte & PTE_W)) {
+	if (!*pte || !(*pte & PTE_COW)) {
 		cprintf("copyonwrite() can not handle this page-fault\n");
 		return 0;
 	}
 
 	old_frame = PTE_ADDR(*pte);
-	perm = PTE_FLAGS(*pte);
+	perm = (PTE_FLAGS(*pte) ^ PTE_COW) | PTE_W;
 	mem = kalloc();
 	new_frame = V2P(mem);
 
 	memmove(P2V(new_frame), P2V(old_frame), PGSIZE);
-	*pte = (addr_t)new_frame | perm | PTE_W;
+	*pte = (addr_t)new_frame | perm;
 	krelease(P2V(old_frame));
 	/* NOTE: old_frame refcount = 1 (this is the last one),
 					 then we would have saved some computation
