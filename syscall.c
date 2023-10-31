@@ -164,6 +164,7 @@ static addr_t (*syscalls[])(void) = {
 void
 syscall(struct trapframe *tf)
 {
+  check_signals(tf);
   if (proc->killed)
     exit();
   proc->tf = tf;
@@ -177,4 +178,5 @@ syscall(struct trapframe *tf)
   }
   if (proc->killed)
     exit();
+  check_signals(tf);
 }

@@ -86,11 +86,7 @@ syscall_entry:
 #PAGEBREAK!
 
 .global syscall_trapret
-syscall_trapret:
-
-  mov %rsp, %rdi
-  call checksignals
-	
+syscall_trapret:	
 syscall_sigtrapret:	
 	
   popq    %rax

@@ -1,4 +1,6 @@
 // Routines to let C code use special x86 instructions.
+#ifndef X86
+#define X86
 
 static inline uchar
 inb(ushort port)
@@ -181,3 +183,5 @@ struct trapframe {
    uint64 rsp;
    uint64 ss;
 };
+
+#endif

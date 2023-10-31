@@ -123,7 +123,7 @@ void            yield(void);
 void            alarm(int);
 void            check_alarms(void);
 void            signal(int, void (*)(int));
-void            checksignals(struct trapframe *);
+void            check_signals(struct trapframe *);
 void            fgproc(int);
 
 // swtch.S
