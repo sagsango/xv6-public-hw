@@ -10,11 +10,12 @@ struct sleeplock;
 struct stat;
 struct superblock;
 struct trapframe;
+struct trapframe;
 
 //entry.S
-void wrmsr(uint msr, uint64 val);
-void syscall_entry(void);
-void ignore_sysret(void);
+void            wrmsr(uint msr, uint64 val);
+void            syscall_entry(void);
+void            ignore_sysret(void);
 
 // bio.c
 void            binit(void);
@@ -73,7 +74,7 @@ void            ioapicinit(void);
 char*           kalloc(void);
 void            kfree(char*);
 void            kinit1(void*, void*);
-void            kinit2(void*, void*);
+void            kinit2();
 
 // kbd.c
 void            kbdintr(void);
@@ -107,7 +108,7 @@ int             pipewrite(struct pipe*, char*, int);
 // proc.c
 void            exit(void);
 int             fork(void);
-int             growproc(int);
+int             growproc(int64);
 int             kill(int,int);
 void            pinit(void);
 void            procdump(void);
@@ -131,7 +132,7 @@ void            swtch(struct context**, struct context*);
 // spinlock.c
 void            acquire(struct spinlock*);
 void            getcallerpcs(void*, addr_t*);
-void		getstackpcs(addr_t*, addr_t*);
+void            getstackpcs(addr_t*, addr_t*);
 int             holding(struct spinlock*);
 void            initlock(struct spinlock*, char*);
 void            release(struct spinlock*);
@@ -154,16 +155,15 @@ int             strncmp(const char*, const char*, uint);
 char*           strncpy(char*, const char*, int);
 
 // syscall.c
-void		syscall(void);
-void    syscallinit(void);
+void            syscall(struct trapframe *);
+void            syscallinit(void);
 int             argint(int, int*);
 int             argptr(int, char**, int);
 int             argstr(int, char**);
 int             argaddr(int, addr_t*);
 int             fetchaddr(addr_t, addr_t*);
 int             fetchstr(addr_t, char**);
-void            syscall(void);
-int		fetchint(addr_t, int*);
+int             fetchint(addr_t, int*);
 
 // trap.c
 void            idtinit(void);
@@ -172,7 +172,7 @@ void            tvinit(void);
 extern struct spinlock tickslock;
 
 // uart.c
-void		uartearlyinit(void);
+void            uartearlyinit(void);
 void            uartinit(void);
 void            uartintr(void);
 void            uartputc(int);
@@ -182,15 +182,15 @@ void            seginit(void);
 void            kvmalloc(void);
 pde_t*          setupkvm(void);
 char*           uva2ka(pde_t*, char*);
-int             allocuvm(pde_t*, uint, uint);
-int             deallocuvm(pde_t*, uint64, uint64);
+addr_t          allocuvm(pde_t*, uint64, uint64);
+addr_t          deallocuvm(pde_t*, uint64, uint64);
 void            freevm(pde_t*);
 void            inituvm(pde_t*, char*, uint);
 int             loaduvm(pde_t*, char*, struct inode*, uint, uint);
 pde_t*          copyuvm(pde_t*, uint);
 void            switchuvm(struct proc*);
 void            switchkvm(void);
-int             copyout(pde_t*, uint, void*, uint);
+int             copyout(pde_t*, addr_t, void*, uint64);
 void            clearpteu(pde_t *pgdir, char *uva);
 
 // number of elements in fixed-size array

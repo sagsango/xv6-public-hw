@@ -22,23 +22,18 @@ struct {
   struct run *freelist;
 } kmem;
 
-// Initialization happens in two phases.
-// 1. main() calls kinit1() while still using entrypgdir to place just
-// the pages mapped by entrypgdir on free list.
-// 2. main() calls kinit2() with the rest of the physical pages
-// after installing a full page table that maps them on all cores.
 void
 kinit1(void *vstart, void *vend)
 {
   initlock(&kmem.lock, "kmem");
   kmem.use_lock = 0;
+  kmem.freelist = 0; // empty
   freerange(vstart, vend);
 }
 
 void
-kinit2(void *vstart, void *vend)
+kinit2()
 {
-  freerange(vstart, vend);
   kmem.use_lock = 1;
 }
 

@@ -18,23 +18,22 @@ int
 main(void)
 {
   uartearlyinit();
-  kinit1(end, P2V(4*1024*1024)); // phys page allocator
+  kinit1(end, P2V(PHYSTOP)); // phys page allocator
   kvmalloc();      // kernel page table
   mpinit();        // detect other processors
   lapicinit();     // interrupt controller
   tvinit();        // trap vectors
   seginit();       // segment descriptors
-  cprintf("\ncpu%d: starting xv6\n\n", cpunum());
+  cprintf("\ncpu%d: starting Fall 2021 xv6\n\n", cpunum());
   ioapicinit();    // another interrupt controller
   consoleinit();   // console hardware
   uartinit();      // serial port
   pinit();         // process table
-//  tvinit();        // trap vectors
   binit();         // buffer cache
   fileinit();      // file table
   ideinit();       // disk
   startothers();   // start other processors
-  kinit2(P2V(4*1024*1024), P2V(PHYSTOP)); // must come after startothers()
+  kinit2();
   userinit();      // first user process
   mpmain();        // finish this processor's setup
 }
@@ -59,8 +58,6 @@ mpmain(void)
   xchg(&cpu->started, 1); // tell startothers() we're up
   scheduler();     // start running processes
 }
-
-//PAGEBREAK!
 
 void entry32mp(void);
 
@@ -92,8 +89,6 @@ startothers(void)
     *(uint32*)(code-8) = v2p(entry32mp);
     *(uint64*)(code-16) = (uint64) (stack + KSTACKSIZE);
 
-
-
     lapicstartap(c->apicid, V2P(code));
 
     // wait for cpu to finish mpmain()
@@ -101,5 +96,3 @@ startothers(void)
       ;
   }
 }
-
-

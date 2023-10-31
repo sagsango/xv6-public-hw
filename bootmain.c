@@ -1,5 +1,5 @@
 // Boot loader.
-// 
+//
 // Part of the boot sector, along with bootasm.S, which calls bootmain().
 // bootasm.S has put the processor into protected 32-bit mode.
 // bootmain() loads a multiboot kernel image from the disk starting at
@@ -12,14 +12,14 @@
 #define SECTSIZE  512
 
 struct mbheader {
-  uint64 magic;
-  uint64 flags;
-  uint64 checksum;
-  uint64 header_addr;
-  uint64 load_addr;
-  uint64 load_end_addr;
-  uint64 bss_end_addr;
-  uint64 entry_addr;
+  uint32 magic;
+  uint32 flags;
+  uint32 checksum;
+  uint32 header_addr;
+  uint32 load_addr;
+  uint32 load_end_addr;
+  uint32 bss_end_addr;
+  uint32 entry_addr;
 };
 
 void readseg(uchar*, uint, uint);
@@ -70,9 +70,7 @@ found_it:
 void
 waitdisk(void)
 {
-  // Wait for disk ready.
-  while((inb(0x1F7) & 0xC0) != 0x40)
-    ;
+  while((inb(0x1F7) & 0xC0) != 0x40);
 }
 
 // Read a single sector at offset into dst.
