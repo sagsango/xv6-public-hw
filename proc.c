@@ -436,7 +436,10 @@ signal(int signum, void (*handler)(int)) {
 }
 
 void
-check_signals(struct trapframe *tf) {
+check_signals() {
+  if (proc->killed)
+    exit();
+
   if(proc && proc->signal_pending) {
     cprintf("got a signal, exiting\n");
     exit();
