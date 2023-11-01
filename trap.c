@@ -42,17 +42,17 @@ void tvinit(void)
     mkgate(idt, n, vectors[n], 0);
 }
 
-int from_bec(int code) {
+int from_bcd(int code) {
   return (code>>4)*10+(code&0xf);
 }
 
 void print_rtc_time() {
       outb(0x70, 0x00);  // Request the seconds
-      int secs = from_bec(inb(0x71));
+      int secs = from_bcd(inb(0x71));
       outb(0x70, 0x02);  // Request the mins
-      int mins = from_bec(inb(0x71));
+      int mins = from_bcd(inb(0x71));
       outb(0x70, 0x04);  // Request the hours
-      int hours = from_bec(inb(0x71));
+      int hours = from_bcd(inb(0x71));
 
       cprintf("%d:%d:%d\n",hours,mins,secs);
 }
