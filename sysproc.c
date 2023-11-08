@@ -49,11 +49,11 @@ sys_alarm(void) {
 
 int sys_signal(void) {
   int signum;
-  void (*handler)(int);
+  void (*handler)(int)=0;
   
   if(argint(0, &signum) < 0)
     return -1;
-  if(argint(1, (int*)&handler) < 0)
+  if(argaddr(1, (int*)&handler) < 0)
     return -1;
 
   signal(signum,handler);
