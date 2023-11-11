@@ -42,20 +42,6 @@ void tvinit(void)
     mkgate(idt, n, vectors[n], 0);
 }
 
-int from_bcd(int code) {
-  return (code>>4)*10+(code&0xf);
-}
-
-void print_rtc_time() {
-      outb(0x70, 0x00);  // Request the seconds
-      int secs = from_bcd(inb(0x71));
-      outb(0x70, 0x02);  // Request the mins
-      int mins = from_bcd(inb(0x71));
-      outb(0x70, 0x04);  // Request the hours
-      int hours = from_bcd(inb(0x71));
-
-      cprintf("%d:%d:%d\n",hours,mins,secs);
-}
 
 //PAGEBREAK: 41
 void
@@ -117,10 +103,17 @@ trap(struct trapframe *tf)
   if(proc && proc->killed && (tf->cs&3) == DPL_USER)
     exit();
 
+	//if(tf->trapno == T_IRQ0+IRQ_TIMER)
+		//cprintf("timer_interrupt");
+
+	if(tf->trapno == T_IRQ0+IRQ_TIMER)
+		update_alarm_signal();
+
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
-  if(proc && proc->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER)
+  if(proc && proc->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER){
     yield();
+	}
 
   // Check if the process has been killed since we yielded
   if(proc && proc->killed && (tf->cs&3) == DPL_USER)

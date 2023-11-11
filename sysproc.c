@@ -63,7 +63,7 @@ int sys_signal(void) {
 int
 sys_sigret(void) {
   cprintf("In sys_sigret\n");
-  return 0;
+  return sigret();
 }
 
 int 

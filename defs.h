@@ -123,8 +123,10 @@ void            yield(void);
 void            alarm(int);
 void            check_alarms(void);
 void            signal(int, void (*)(int));
-void            check_signals();
+void            check_signals(int);
 void            fgproc(int);
+void            update_alarm_signal();
+int 						sigret();
 
 // swtch.S
 void            swtch(struct context**, struct context*);
@@ -195,3 +197,7 @@ void            clearpteu(pde_t *pgdir, char *uva);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
+
+// hello.S
+void            sigret_start(void);
+void            sigret_end(void);

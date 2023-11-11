@@ -65,6 +65,10 @@ struct proc {
   char name[16];               // Process name (debugging)
 
   enum signal signal_pending;  
+	int alarm_timer;
+	void (*signal_handler[64])(int); 
+	int should_ignore_signal[64];
+	struct trapframe saved_tf;
 };
 
 // Process memory is laid out contiguously, low addresses first:

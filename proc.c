@@ -49,6 +49,9 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->signal_pending = 0;
+	p->alarm_timer = 0;
+	memset(p->signal_handler, 0, sizeof(p->signal_handler));
+	memset(p->should_ignore_signal, 0, sizeof(p->should_ignore_signal));
   p->pid = nextpid++;
 
   release(&ptable.lock);
@@ -424,26 +427,110 @@ wakeup(void *chan)
   release(&ptable.lock);
 }
 
+/*
+int from_bcd(int code) {
+  return (code>>4)*10+(code&0xf);
+}
+*/
+
+/*
+int get_cur_time_in_sec(){
+      outb(0x70, 0x00);  // Request the seconds
+      int secs = from_bcd(inb(0x71));
+      outb(0x70, 0x02);  // Request the mins
+      int mins = from_bcd(inb(0x71));
+      outb(0x70, 0x04);  // Request the hours
+      int hours = from_bcd(inb(0x71));
+			return hours * 60 * 60 + mins * 60 + secs;
+}
+*/
 
 void
 alarm(int secs) {
-  cprintf("alarm did nothing\n");
+	cprintf("alarm(): Updated alarm timer\n");
+	acquire(&ptable.lock);
+	proc->alarm_timer = get_cur_time_in_sec() + secs;
+	release(&ptable.lock);
+  cprintf("alarm(): Updated alarm timer\n");
 }
 
 void
 signal(int signum, void (*handler)(int)) {
-  cprintf("In signal(), with number %d and handler %x\n",signum,(int)handler);
+	cprintf("signal(): Updated signal handler, with number %d and handler %x\n",signum,(int)handler);
+	acquire(&ptable.lock);
+	switch((int)handler) {
+		case 0:
+			proc->should_ignore_signal[signum] = 0; // do not ignore
+			proc->signal_handler[signum] = 0;
+			break;
+		case 1:
+			proc->should_ignore_signal[signum] = 1; // ignore
+			proc->signal_handler[signum] = 0;
+			break;
+		default:
+			proc->signal_handler[signum] = handler;
+			proc->should_ignore_signal[signum] = 0;
+	}
+	release(&ptable.lock);
+  cprintf("signal(): Updated signal handler, with number %d and handler %x\n",signum,(int)handler);
 }
 
 void
-check_signals() {
+check_signals(int x) {
   if (proc->killed)
     exit();
 
+	acquire(&ptable.lock);
   if(proc && proc->signal_pending) {
-    cprintf("got a signal, exiting\n");
-    exit();
+	cprintf("check_signal(): signal_pending:%d, signal_ignore:%d, signal_handler:%p\n",
+			proc->signal_pending, proc->should_ignore_signal[proc->signal_pending], proc->signal_handler[proc->signal_pending]);
+		if (!proc->should_ignore_signal[proc->signal_pending]) {
+			if (!proc->signal_handler[proc->signal_pending]) {
+				release(&ptable.lock);
+    		cprintf("check_signal(): got a signal but no signal-handler, exiting\n");
+				exit();
+				panic("check_signals(): should be killed");
+			}
+			else {
+				// call signal handler
+
+
+				memmove(&proc->saved_tf, proc->tf, sizeof(struct trapframe));
+				// 1. code of sigret
+  			proc->tf->rsp -= (uint)&sigret_end - (uint)&sigret_start;
+  			memmove((void*)proc->tf->rsp, sigret_start, (uint)&sigret_end - (uint)&sigret_start);
+
+				int a = sizeof(proc->signal_pending);
+				int b = sizeof(proc->tf->rsp);
+
+				// 2. argumnet for sig_handler
+  			*((int*)(proc->tf->rsp - a)) = proc->signal_pending;
+				// 3. pointer to the code of segret
+  			*((int*)(proc->tf->rsp - a - b)) = proc->tf->rsp;
+  			proc->tf->rsp -= a + b;
+
+				/*
+				proc->tf->rsp -= sizeof(proc->signal_pending);
+				*((int*)(proc->tf->rsp)) = proc->signal_pending; // arg
+				proc->tf->rsp -= sizeof(proc->tf->rsp);
+				*((int*)(proc->tf->rsp)) = proc->tf->rsp;        // 
+				*/
+
+				// 4. rip points to signal handler.
+  			//proc->tf->rip = (uint)proc->signal_handler[proc->signal_pending];
+				proc->tf->rcx = (uint)proc->signal_handler[proc->signal_pending];
+
+				cprintf("check_signal(): got a signal, and i am going to call handler: %p = %p\n", proc->tf->rip, proc->signal_handler[proc->signal_pending]);
+
+
+				// 5. make pending signal = 0
+				proc->signal_pending = 0;
+			}
+		}
   }
+end:
+		release(&ptable.lock);
+	
 }
 
 // Signal the process with the given pid and signal
@@ -505,4 +592,58 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+int from_bcd(int code) {
+  return (code>>4)*10+(code&0xf);
+}
+
+int
+get_cur_time_in_sec() {
+      outb(0x70, 0x00);  // Request the seconds
+      int secs = from_bcd(inb(0x71));
+      outb(0x70, 0x02);  // Request the mins
+      int mins = from_bcd(inb(0x71));
+      outb(0x70, 0x04);  // Request the hours
+      int hours = from_bcd(inb(0x71));
+
+      return hours * 60 * 60 + mins * 60 + secs;
+}
+
+void update_alarm_signal() {
+	//cprintf("update_alarm_signal()");
+  struct proc *p;
+
+  acquire(&ptable.lock);
+
+  int cur_time_sec = get_cur_time_in_sec();
+
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    if (p->state == UNUSED ||
+				p->state == EMBRYO ||
+				p->state == ZOMBIE) {
+      continue;
+    }
+    if (p->alarm_timer &&
+        p->alarm_timer < cur_time_sec) {
+      p->alarm_timer = 0;
+      p->signal_pending = SIGALRM;
+			if (p->state == SLEEPING) {
+				p->state = RUNNABLE;
+			}
+    }
+  }
+
+  release(&ptable.lock);
+}
+
+int sigret(void) {
+		cprintf("In my sigret\n");
+		acquire(&ptable.lock);
+		cprintf("Restoring tf\n");
+		memmove(proc->tf, &proc->saved_tf, sizeof(struct trapframe));
+		cprintf("Restored tf\n");
+		release(&ptable.lock);
+		cprintf("Out my sigret\n");
+		return 0;
 }
