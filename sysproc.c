@@ -68,7 +68,11 @@ sys_sigret(void) {
 
 int 
 sys_fgproc(void) {
+	int pid;
+	if(argint(0, &pid) < 0)
+    return -1;
   cprintf("In sys_fgproc\n");
+	fgproc(pid);
   return 0;
 }
 

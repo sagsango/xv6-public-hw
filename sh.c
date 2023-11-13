@@ -141,11 +141,36 @@ getcmd(char *buf, int nbuf)
   return 0;
 }
 
+/*
+	 This program is very simple!
+	 Detects if given cmd is a background cmd
+
+	 a. $ cmdname
+	 b. $ cmdname&
+	 c. $ cmdname &
+	 d. $ cmdname 			&
+	 e. $ cmdname & cmdname2
+
+	 It returns 1 for b, c, and d.
+	 NOTE: For now, we do not support e in xv6.
+*/
+int
+background_cmd(char *buf)
+{
+	int i = strlen(buf) - 1;
+	for (; i >= 0 && i < 100; ++i) {
+		if (buf[i] == '&') {
+			return 1;
+		}
+	}
+	return 0;
+}
+
 int
 main(void)
 {
   static char buf[100];
-  int fd;
+  int fd, cpid;
 
   // Ensure that three file descriptors are open.
   while((fd = open("console", O_RDWR)) >= 0){
@@ -164,8 +189,25 @@ main(void)
         printf(2, "cannot cd %s\n", buf+3);
       continue;
     }
-    if(fork1() == 0)
+    if((cpid = fork1()) == 0)
       runcmd(parsecmd(buf));
+		else if(cpid != -1){
+			printf(1, "cmd :");
+			for (int i = 0; i< sizeof(buf); ++i) {
+				printf(1, "%c", buf[i]);
+			}
+			printf(1, "\n");
+			printf(1, "cmd's(%d) last char :%c\n",strlen(buf),  buf[strlen(buf)-1]);
+			printf(1, "Making sh.c [%d], child [%d] as fgproc\n", getpid(), cpid);
+			if (!background_cmd(buf)) {
+				/*
+					 We have made this check to test our Ctr+C for fgproc
+					 $ helloloop & -> This will not get killed on Ctr+C
+					 $ helloloop   -> This will get killed on Ctr+C
+				*/
+				fgproc(cpid);
+			}
+		}
     wait();
   }
   exit();

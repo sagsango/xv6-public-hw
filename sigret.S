@@ -7,5 +7,5 @@
 sigret_start:
   mov $SYS_sigret, %eax;
   syscall
-	ret
+	ret # This line will never execute, because we will not return form this path see trapasm.S
 sigret_end:

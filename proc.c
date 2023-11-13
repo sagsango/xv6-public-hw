@@ -52,6 +52,7 @@ found:
 	p->alarm_timer = 0;
 	memset(p->signal_handler, 0, sizeof(p->signal_handler));
 	memset(p->should_ignore_signal, 0, sizeof(p->should_ignore_signal));
+	p->is_fgproc = 0;
   p->pid = nextpid++;
 
   release(&ptable.lock);
@@ -647,3 +648,40 @@ int sigret(void) {
 		cprintf("Out my sigret\n");
 		return 0;
 }
+
+
+void
+fgproc(int pid) {
+	struct proc *p;
+	acquire(&ptable.lock);
+	for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+		p->is_fgproc = 0; /* Unmark previous gfproc */
+		if (p->pid == pid) {
+				p->is_fgproc = 1;
+				cprintf("makeing [%d] as fgproc\n", pid);
+		}
+	}
+	release(&ptable.lock);
+}
+
+void
+killfg() {
+	struct proc *p;
+	cprintf("In killfg\n");
+  acquire(&ptable.lock);
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+		cprintf("Checking fgproc\n");
+    if (p->is_fgproc) {
+			p->killed = 1;
+
+			cprintf("Killing %d ctr+c\n", p->pid);
+      // Wake process from sleep if necessary.
+      if(p->state == SLEEPING)
+        p->state = RUNNABLE;
+
+      break;
+    }
+  }
+  release(&ptable.lock);
+}
+

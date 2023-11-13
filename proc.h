@@ -69,6 +69,7 @@ struct proc {
 	void (*signal_handler[64])(int); 
 	int should_ignore_signal[64];
 	struct trapframe saved_tf;
+	int is_fgproc;
 };
 
 // Process memory is laid out contiguously, low addresses first:

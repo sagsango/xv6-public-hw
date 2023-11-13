@@ -233,6 +233,10 @@ consoleintr(int (*getc)(void))
         consputc(BACKSPACE);
       }
       break;
+		case C('C'):
+				killfg();
+        cprintf("Called killfg(), Ctr+c");
+			break;
     default:
       if (c != 0 && input.e-input.r < INPUT_BUF) {
         c = (c == '\r') ? '\n' : c;
