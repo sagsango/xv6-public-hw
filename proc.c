@@ -428,38 +428,18 @@ wakeup(void *chan)
   release(&ptable.lock);
 }
 
-/*
-int from_bcd(int code) {
-  return (code>>4)*10+(code&0xf);
-}
-*/
-
-/*
-int get_cur_time_in_sec(){
-      outb(0x70, 0x00);  // Request the seconds
-      int secs = from_bcd(inb(0x71));
-      outb(0x70, 0x02);  // Request the mins
-      int mins = from_bcd(inb(0x71));
-      outb(0x70, 0x04);  // Request the hours
-      int hours = from_bcd(inb(0x71));
-			return hours * 60 * 60 + mins * 60 + secs;
-}
-*/
-
 void
 alarm(int secs) {
-	cprintf("alarm(): Updated alarm timer\n");
 	acquire(&ptable.lock);
 	proc->alarm_timer = get_cur_time_in_sec() + secs;
 	release(&ptable.lock);
-  cprintf("alarm(): Updated alarm timer\n");
 }
 
 void
 signal(int signum, void (*handler)(int)) {
-	cprintf("signal(): Updated signal handler, with number %d and handler %x\n",signum,(int)handler);
 	acquire(&ptable.lock);
 	switch((int)handler) {
+		/* We are using 2 variables here, which could have been avoided */
 		case 0:
 			proc->should_ignore_signal[signum] = 0; // do not ignore
 			proc->signal_handler[signum] = 0;
@@ -473,58 +453,41 @@ signal(int signum, void (*handler)(int)) {
 			proc->should_ignore_signal[signum] = 0;
 	}
 	release(&ptable.lock);
-  cprintf("signal(): Updated signal handler, with number %d and handler %x\n",signum,(int)handler);
 }
 
 void
-check_signals(int x) {
+check_signals() {
   if (proc->killed)
     exit();
 
 	acquire(&ptable.lock);
   if(proc && proc->signal_pending) {
-	cprintf("check_signal(): signal_pending:%d, signal_ignore:%d, signal_handler:%p\n",
-			proc->signal_pending, proc->should_ignore_signal[proc->signal_pending], proc->signal_handler[proc->signal_pending]);
 		if (!proc->should_ignore_signal[proc->signal_pending]) {
 			if (!proc->signal_handler[proc->signal_pending]) {
 				release(&ptable.lock);
-    		cprintf("check_signal(): got a signal but no signal-handler, exiting\n");
 				exit();
-				panic("check_signals(): should be killed");
 			}
-			else {
-				// call signal handler
-
+			else { // call signal handler
 
 				memmove(&proc->saved_tf, proc->tf, sizeof(struct trapframe));
 				// 1. code of sigret
   			proc->tf->rsp -= (uint)&sigret_end - (uint)&sigret_start;
   			memmove((void*)proc->tf->rsp, sigret_start, (uint)&sigret_end - (uint)&sigret_start);
 
-				int a = sizeof(proc->signal_pending);
-				int b = sizeof(proc->tf->rsp);
+				int size_arg = sizeof(proc->signal_pending);
+				int size_sp = sizeof(proc->tf->rsp);
 
 				// 2. argumnet for sig_handler
-  			*((int*)(proc->tf->rsp - a)) = proc->signal_pending;
+  			*((int*)(proc->tf->rsp - size_arg)) = proc->signal_pending;
 				// 3. pointer to the code of segret
-  			*((int*)(proc->tf->rsp - a - b)) = proc->tf->rsp;
-  			proc->tf->rsp -= a + b;
-
-				/*
-				proc->tf->rsp -= sizeof(proc->signal_pending);
-				*((int*)(proc->tf->rsp)) = proc->signal_pending; // arg
-				proc->tf->rsp -= sizeof(proc->tf->rsp);
-				*((int*)(proc->tf->rsp)) = proc->tf->rsp;        // 
-				*/
+  			*((int*)(proc->tf->rsp - (size_arg + size_sp))) = proc->tf->rsp;
+  			proc->tf->rsp -= (size_arg + size_sp);
 
 				// 4. rip points to signal handler.
   			//proc->tf->rip = (uint)proc->signal_handler[proc->signal_pending];
 				proc->tf->rcx = (uint)proc->signal_handler[proc->signal_pending];
 
-				cprintf("check_signal(): got a signal, and i am going to call handler: %p = %p\n", proc->tf->rip, proc->signal_handler[proc->signal_pending]);
-
-
-				// 5. make pending signal = 0
+				// make pending signal = 0
 				proc->signal_pending = 0;
 			}
 		}
@@ -612,7 +575,6 @@ get_cur_time_in_sec() {
 }
 
 void update_alarm_signal() {
-	//cprintf("update_alarm_signal()");
   struct proc *p;
 
   acquire(&ptable.lock);
@@ -639,13 +601,9 @@ void update_alarm_signal() {
 }
 
 int sigret(void) {
-		cprintf("In my sigret\n");
 		acquire(&ptable.lock);
-		cprintf("Restoring tf\n");
 		memmove(proc->tf, &proc->saved_tf, sizeof(struct trapframe));
-		cprintf("Restored tf\n");
 		release(&ptable.lock);
-		cprintf("Out my sigret\n");
 		return 0;
 }
 
@@ -658,7 +616,6 @@ fgproc(int pid) {
 		p->is_fgproc = 0; /* Unmark previous gfproc */
 		if (p->pid == pid) {
 				p->is_fgproc = 1;
-				cprintf("makeing [%d] as fgproc\n", pid);
 		}
 	}
 	release(&ptable.lock);
@@ -667,14 +624,10 @@ fgproc(int pid) {
 void
 killfg() {
 	struct proc *p;
-	cprintf("In killfg\n");
   acquire(&ptable.lock);
   for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-		cprintf("Checking fgproc\n");
     if (p->is_fgproc) {
 			p->killed = 1;
-
-			cprintf("Killing %d ctr+c\n", p->pid);
       // Wake process from sleep if necessary.
       if(p->state == SLEEPING)
         p->state = RUNNABLE;

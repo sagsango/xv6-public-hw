@@ -191,22 +191,14 @@ main(void)
     }
     if((cpid = fork1()) == 0)
       runcmd(parsecmd(buf));
-		else if(cpid != -1){
-			printf(1, "cmd :");
-			for (int i = 0; i< sizeof(buf); ++i) {
-				printf(1, "%c", buf[i]);
-			}
-			printf(1, "\n");
-			printf(1, "cmd's(%d) last char :%c\n",strlen(buf),  buf[strlen(buf)-1]);
-			printf(1, "Making sh.c [%d], child [%d] as fgproc\n", getpid(), cpid);
-			if (!background_cmd(buf)) {
+		else if(cpid != -1 &&
+				!background_cmd(buf)) {
 				/*
-					 We have made this check to test our Ctr+C for fgproc
+					 We have made background_cmd() check to test our Ctr+C for fgproc.
 					 $ helloloop & -> This will not get killed on Ctr+C
 					 $ helloloop   -> This will get killed on Ctr+C
 				*/
 				fgproc(cpid);
-			}
 		}
     wait();
   }

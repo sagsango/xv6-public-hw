@@ -123,10 +123,10 @@ void            yield(void);
 void            alarm(int);
 void            check_alarms(void);
 void            signal(int, void (*)(int));
-void            check_signals(int);
+void            check_signals();
 void            fgproc(int);
 void            update_alarm_signal();
-int 						sigret();
+int             sigret();
 
 // swtch.S
 void            swtch(struct context**, struct context*);

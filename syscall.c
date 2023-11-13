@@ -164,7 +164,7 @@ static addr_t (*syscalls[])(void) = {
 void
 syscall(struct trapframe *tf)
 {
-  check_signals(1);
+  check_signals();
   proc->tf = tf;
   uint64 num = proc->tf->rax;
   if (num > 0 && num < NELEM(syscalls) && syscalls[num]) {
@@ -174,5 +174,5 @@ syscall(struct trapframe *tf)
             proc->pid, proc->name, num);
     tf->rax = -1;
   }
-  check_signals(2);
+  check_signals();
 }

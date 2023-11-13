@@ -235,7 +235,6 @@ consoleintr(int (*getc)(void))
       break;
 		case C('C'):
 				killfg();
-        cprintf("Called killfg(), Ctr+c");
 			break;
     default:
       if (c != 0 && input.e-input.r < INPUT_BUF) {
