@@ -4,9 +4,14 @@ KERNOBJS = \
   syscall.o sysfile.o procfs.o sysproc.o trapasm.o trap.o uart.o vectors.o vm.o \
 
 UNAME_S := $(shell uname -s)
+UNAME_P := $(shell uname -p)
 ifeq ($(UNAME_S),Linux)
-  # no prefix for Linux or WSL2
-  TOOLPREFIX =
+  ifeq ($(UNAME_P),aarch64)
+	TOOLPREFIX = x86_64-linux-gnu
+  else
+  	# no prefix for Linux or WSL2
+ 	 TOOLPREFIX = 
+  endif
 else ifeq ($(UNAME_S),Darwin)
   # need homebrew: $ brew install qemu x86_64-elf-gcc
   TOOLPREFIX = x86_64-elf-
@@ -159,7 +164,7 @@ qemu-memfs: xv6memfs.img
 	$(QEMU) -drive file=xv6memfs.img,index=0,media=disk,format=raw -smp $(CPUS) -m 256
 
 qemu-nox: fs.img xv6.img
-	$(QEMU) -nographic $(QEMUOPTS)
+	$(QEMU) -nographic $(QEMUOPTS) -action reboot=shutdown
 
 .gdbinit: .gdbinit.tmpl
 	sed "s/localhost:1234/localhost:$(GDBPORT)/" < $^ > $@

@@ -77,8 +77,8 @@ void            ioapicinit(void);
 char*           kalloc(void);
 void            kfree(char*);
 void            kinit1(void*, void*);
-void            kinit2(void*, void*);
-uint            kmemfreecount();
+void            kinit2();
+
 // kbd.c
 void            kbdintr(void);
 
@@ -155,9 +155,9 @@ char*           strncpy(char*, const char*, int);
 void            syscall(struct trapframe *);
 void            syscallinit(void);
 int             argint(int, int*);
-int             argptr(int, char**, int);
+addr_t          argptr(int, char**, int);
 int             argstr(int, char**);
-int             argaddr(int, addr_t*);
+addr_t          argaddr(int, addr_t*);
 int             fetchaddr(addr_t, addr_t*);
 int             fetchstr(addr_t, char**);
 int             fetchint(addr_t, int*);
