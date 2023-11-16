@@ -16,10 +16,10 @@ main(void)
     mknod("console", 1, 1);
     open("console", O_RDWR);
   }
+  mknod("cdrom",1,2); // lazy alternative to adding device file support to mkfs.c
+
   dup(0);  // stdout
   dup(0);  // stderr
-  mkdir("proc");
-  mkdir("cdrom");
 
   for(;;){
     printf(1, "init: starting sh\n");

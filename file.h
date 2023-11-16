@@ -37,6 +37,7 @@ struct inode {
   int flags;          // I_VALID
 
   uint mounted_dev;   // if this inode is a mount point, mounted_dev is the dev of contained files
+  struct inode* mount_parent;
   struct inode_functions *i_func;
 
   short type;         // copy of disk inode

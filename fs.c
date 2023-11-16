@@ -301,6 +301,8 @@ fs_ipopulate(struct inode* ip) {
   ip->minor = dip->minor;
   ip->nlink = dip->nlink;
   ip->size = dip->size;
+  ip->mount_parent = 0;
+  ip->mounted_dev = 0;
   
   memmove(ip->addrs, dip->addrs, sizeof(ip->addrs));
   brelse(bp);
@@ -518,6 +520,11 @@ dirlookup(struct inode *dp, char *name, uint *poff)
 
   if(dp->type != T_DIR)
     panic("dirlookup not DIR");
+
+  if(namecmp(name,"..")==0 && dp->mount_parent) {
+    idup(dp->mount_parent);
+    return dp->mount_parent;
+  }
 
   off = 0;
   while(dp->i_func->readi(dp, (char*)&de, off, sizeof(de)) == sizeof(de)) {

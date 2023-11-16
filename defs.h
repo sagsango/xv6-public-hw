@@ -122,6 +122,7 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
+struct proc*    proc_for_pid(int pid);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
