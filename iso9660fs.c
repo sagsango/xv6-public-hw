@@ -33,7 +33,6 @@ iso9660fs_ipopulate(struct inode* ip)
     ip->flags |= I_VALID;
 
     cprintf("iso9660fs_ipopulate(): %d\n", ip->inum);
-    return;
     /*
 
         you know the offset to read from
@@ -43,17 +42,40 @@ iso9660fs_ipopulate(struct inode* ip)
     char buf[2048] = {0};
     begin_op();
     read_block_range(buf,addr/512,4);
-    struct iso9660_dir_s *entry = buf;
+    struct iso9660_dir_s *entry = buf + ((int)addr % 512);
     if(entry->length) {
+        char file_buf[100]={0};
+        memcpy(file_buf,&entry->filename.str[1],entry->filename.len);
+        cprintf("iso9660fs_ipopulate() name -> %s\n", file_buf);
+        cprintf("length:%d\n"
+                    "xa_length:%d\n"
+                    "extent:%p\n"
+                    "size:%d\n"
+                    "file_flags:%d\n"
+                    "file_unit_size:%d\n"
+                    "interleave_gap:%d\n"
+                    "volume_sequence_number:%d\n\n\n",
+                    entry->length,
+                    entry->xa_length,
+                    entry->extent,
+                    entry->size,
+                    entry->file_flags,
+                    entry->file_unit_size,
+                    entry->interleave_gap,
+                    entry->volume_sequence_number);
+
         ip->type = entry->file_flags == 0 ? T_FILE : T_DIR;
-        ip->major = 2;
-        ip->minor = 0; // I dont know
-        ip->nlink = 1;
+        //ip->major = 2;
+        //ip->minor = 0; // I dont know
+        //ip->nlink = 1;
+        ip->size = entry->size;
+        /*
         if(ip->type == T_FILE) {
             ip->size = entry->size;
         }else{
             char file_buf[2048] = {0};
             uint data_addr = entry->extent*2048;
+            cprintf("iso9660fs_ipopulate(): Going to read block\n");
             read_block_range(file_buf, data_addr/512, 4);
             struct iso9660_dir_s *my_entry = file_buf;
             int cnt = 0;
@@ -63,12 +85,13 @@ iso9660fs_ipopulate(struct inode* ip)
                 my_entry = (struct iso9660_dir_s*) ((char*)my_entry+my_entry->length);
             }
             ip->size = sizeof(struct dirent) * cnt;
-        }
+        }*/
         // ip->mount_parent = 0;
         // ip->mounted_dev = 0;
         ip->addrs[0] = entry->extent*2048;
         ip->flags |= I_VALID;
     }
+    end_op();
 }
 
 // XXX: write inode details back to disk
@@ -96,7 +119,7 @@ iso9660fs_readi(struct inode* ip, char* dst, uint offset, uint size)
     char buf[2048] = {0};
     begin_op();
     read_block_range(buf,addr/512,4);
-    struct iso9660_dir_s *entry = buf;
+    struct iso9660_dir_s *entry = buf + ((int)addr % 512);
     //cprintf("iso9660fs_readi(1): inode_num:%d addr:%d, offset:%d, size:%d\n", ip->inum, ip->addrs[0], offset, size);
     int off;
     for (off = 0; off <= offset; off += sizeof(struct dirent)) {
