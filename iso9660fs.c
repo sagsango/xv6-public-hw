@@ -16,6 +16,7 @@
   static void 
 read_block_range(char* dst, uint start_block, uint count) {
   for (int block=start_block;block<start_block+count;block++) {
+      cprintf("block_num:%d\n", block);
       struct buf *bp = bread(2, block);
       memmove(dst,bp->data,BSIZE);
       brelse(bp);
@@ -35,7 +36,7 @@ iso9660fs_ipopulate(struct inode* ip)
         get details from there.
     */
     uint addr = ip->inum;
-    char buf[2048] = {0};
+    static char buf[2048] = {0};
     begin_op();
     read_block_range(buf,addr/512,4);
     struct iso9660_dir_s *entry = buf + ((int)addr % 512);
@@ -63,8 +64,12 @@ iso9660fs_ipopulate(struct inode* ip)
         ip->type = entry->file_flags == 0 ? T_FILE : T_DIR;
         ip->size = entry->size;
         // ip->mount_parent = 0;
-        // ip->mounted_dev = 0;
-        ip->addrs[0] = entry->extent*2048;
+        ip->mounted_dev = 0;
+        //ip->addrs[0] = entry->extent*2048;
+        int i;
+        for (i = 0; i <=NDIRECT; i++){
+            ip->addrs[i] = 0;
+        }
         ip->flags |= I_VALID;
     }
     end_op();
@@ -90,13 +95,23 @@ iso9660fs_writei(struct inode* ip, char* buf, uint offset, uint count)
   int
 iso9660fs_readi(struct inode* ip, char* dst, uint offset, uint size)
 {
-  if ( ip->type == T_DIR ) {
-    uint addr = ip->addrs[0]; /* Either init this in ipopulate or check if mountpoint then only use otherise ip->inum*/
-    char buf[2048] = {0};
+  if (ip->type == T_DIR) {
+    uint addr = ip->inum;/* Either init this in ipopulate or check if mountpoint then only use otherise ip->inum*/
+    uint org_addr;
+    static char buf[2048] = {0};
     begin_op();
+    if (ip->mounted_dev) {
+        addr = ip->addrs[0];
+        org_addr = addr;
+    }else{
+        read_block_range(buf,addr/512,4);
+        struct iso9660_dir_s *entry = buf + ((int)addr % 512);
+        addr = entry->extent*2048;
+        org_addr = addr;
+    }
     read_block_range(buf,addr/512,4);
     struct iso9660_dir_s *entry = buf + ((int)addr % 512);
-    cprintf("iso9660fs_readi(1): inode_num:%d addr:%d, offset:%d, size:%d\n", ip->inum, ip->addrs[0], offset, size);
+    cprintf("iso9660fs_readi(1): inode_num:%d addr:%d, mounted_dev:%d, offset:%d, size:%d\n", ip->inum, ip->addrs[0], ip->mounted_dev, offset, size);
     int off;
     for (off = 0; off <= offset; off += sizeof(struct dirent)) {
         if (entry->length) {
@@ -112,8 +127,15 @@ iso9660fs_readi(struct inode* ip, char* dst, uint offset, uint size)
             }
             memset(dst, 0, sizeof(struct dirent));
             memcpy(de->name, &entry->filename.str[1], entry->filename.len - trim);
-            cprintf("   direntry:%s\n", de->name);
-            de->inum = ip->addrs[0] + ((char*)entry - (char*)buf);
+            de->inum = org_addr + ((char*)entry - (char*)buf);
+            cprintf("   %d/dirent[%s:%d]\n", ip->inum, de->name, de->inum);
+            if(de->inum == 65864) { // TODO: remove this block
+                uint data_addr = entry->extent*2048;
+                cprintf(" --------> Doing it:%d*2048=%d\n", entry->extent,data_addr );
+                read_block_range(buf,data_addr/512,1);
+                cprintf(" --------> Done it\n");
+            }
+
             if(off == offset) {
                 end_op();
                 return sizeof(struct dirent);
@@ -133,20 +155,39 @@ iso9660fs_readi(struct inode* ip, char* dst, uint offset, uint size)
     cprintf("iso9660fs_readi(2): inode_num:%d addr:%d, offset:%d, size:%d\n", ip->inum, ip->addrs[0], offset, size); 
     /* XXX: We have to check the actual file size so need to read the file first, rather than its content at ip->addrs[0], which was filled in ipopulate() */
     uint addr = ip->inum;
-    char buf[2048] = {0};
+    static char buf[2048] = {0};
     char namebuf[100]={0};
     begin_op();
     read_block_range(buf,addr/512,4);
     struct iso9660_dir_s *entry = buf + ((int)addr % 512);
     memcpy(namebuf,&entry->filename.str[1],entry->filename.len);
     cprintf("iso9660fs_readi(3) name: %s\n",namebuf);
+      cprintf("length:%d\n"
+              "xa_length:%d\n"
+              "extent:%p\n"
+              "size:%d\n"
+              "file_flags:%d\n"
+              "file_unit_size:%d\n"
+              "interleave_gap:%d\n"
+              "volume_sequence_number:%d\n\n\n",
+              entry->length,
+              entry->xa_length,
+              entry->extent,
+              entry->size,
+              entry->file_flags,
+              entry->file_unit_size,
+              entry->interleave_gap,
+              entry->volume_sequence_number);
+
     if (offset < ip->size) {
       if (offset + size > ip->size) {
           size = ip->size - offset;
       }
-      char file_buf[2048] = {0};
+      static char file_buf[2048] = {0};
       uint data_addr = entry->extent*2048;
+      cprintf("iso9660fs_readi(4): %d\n", data_addr);
       read_block_range(file_buf, data_addr/512, 4);
+      cprintf("iso9660fs_readi(5): %d\n", data_addr);
       memcpy(dst, file_buf + offset, size);
       end_op();
       return size;
@@ -233,7 +274,7 @@ iso9660fsinit(char * const path, char * device)
               entry->volume_sequence_number);
       if(entry->file_flags == 0){
           cprintf("File_content:");
-          char file_buf[2048] = {0};
+          static char file_buf[2048] = {0};
           int file_len = entry->size;
           uint data_addr = entry->extent*2048;
           read_block_range(file_buf, data_addr/512, 4);
@@ -242,7 +283,7 @@ iso9660fsinit(char * const path, char * device)
           cprintf("Len_was:%d\n", entry->size);
       }
       else if(entry->file_flags == 2) {
-          char file_buf[2048] = {0};
+          static char file_buf[2048] = {0};
           uint data_addr = entry->extent*2048;
           read_block_range(file_buf, data_addr/512, 4);
           struct iso9660_dir_s *my_entry = file_buf;
