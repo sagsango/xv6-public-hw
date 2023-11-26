@@ -59,7 +59,7 @@ iso9660fs_ipopulate(struct inode* ip)
                     entry->file_unit_size,
                     entry->interleave_gap,
                     entry->volume_sequence_number);
-
+        ip->dev = 2;
         ip->type = entry->file_flags == 0 ? T_FILE : T_DIR;
         ip->size = entry->size;
         // ip->mount_parent = 0;
@@ -91,7 +91,7 @@ iso9660fs_writei(struct inode* ip, char* buf, uint offset, uint count)
 iso9660fs_readi(struct inode* ip, char* dst, uint offset, uint size)
 {
   if ( ip->type == T_DIR ) {
-    uint addr = ip->addrs[0];
+    uint addr = ip->addrs[0]; /* Either init this in ipopulate or check if mountpoint then only use otherise ip->inum*/
     char buf[2048] = {0};
     begin_op();
     read_block_range(buf,addr/512,4);
@@ -112,6 +112,7 @@ iso9660fs_readi(struct inode* ip, char* dst, uint offset, uint size)
             }
             memset(dst, 0, sizeof(struct dirent));
             memcpy(de->name, &entry->filename.str[1], entry->filename.len - trim);
+            cprintf("   direntry:%s\n", de->name);
             de->inum = ip->addrs[0] + ((char*)entry - (char*)buf);
             if(off == offset) {
                 end_op();
