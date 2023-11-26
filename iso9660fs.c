@@ -16,7 +16,7 @@
   static void 
 read_block_range(char* dst, uint start_block, uint count) {
   for (int block=start_block;block<start_block+count;block++) {
-      cprintf("block_num:%d\n", block);
+      //cprintf("block_num:%d\n", block);
       struct buf *bp = bread(2, block);
       memmove(dst,bp->data,BSIZE);
       brelse(bp);
@@ -29,7 +29,7 @@ read_block_range(char* dst, uint start_block, uint count) {
 iso9660fs_ipopulate(struct inode* ip)
 {
 
-    cprintf("iso9660fs_ipopulate(): %d\n", ip->inum);
+    //cprintf("iso9660fs_ipopulate(): %d\n", ip->inum);
     /*
 
         you know the offset to read from
@@ -41,7 +41,7 @@ iso9660fs_ipopulate(struct inode* ip)
     read_block_range(buf,addr/512,4);
     struct iso9660_dir_s *entry = buf + ((int)addr % 512);
     if(entry->length) {
-        char file_buf[100]={0};
+        /*char file_buf[100]={0};
         memcpy(file_buf,&entry->filename.str[1],entry->filename.len);
         cprintf("iso9660fs_ipopulate() = name:%s", file_buf);
         cprintf(" length:%d"
@@ -59,7 +59,7 @@ iso9660fs_ipopulate(struct inode* ip)
                     entry->file_flags,
                     entry->file_unit_size,
                     entry->interleave_gap,
-                    entry->volume_sequence_number);
+                    entry->volume_sequence_number);*/
         ip->dev = 2;
         ip->type = entry->file_flags == 0 ? T_FILE : T_DIR;
         ip->size = entry->size;
@@ -79,7 +79,7 @@ iso9660fs_ipopulate(struct inode* ip)
   void
 iso9660fs_iupdate(struct inode* ip)
 {
-    cprintf("iso9660fs_iupdate(): %d\n", ip->inum);
+    //cprintf("iso9660fs_iupdate(): %d\n", ip->inum);
 }
 
 // XXX: write to file contents
@@ -111,7 +111,7 @@ iso9660fs_readi(struct inode* ip, char* dst, uint offset, uint size)
     }
     read_block_range(buf,addr/512,4);
     struct iso9660_dir_s *entry = buf + ((int)addr % 512);
-    cprintf("iso9660fs_readi(1): inode_num:%d addr:%d, mounted_dev:%d, offset:%d, size:%d\n", ip->inum, ip->addrs[0], ip->mounted_dev, offset, size);
+    //cprintf("iso9660fs_readi(1): inode_num:%d addr:%d, mounted_dev:%d, offset:%d, size:%d\n", ip->inum, ip->addrs[0], ip->mounted_dev, offset, size);
     int off;
     for (off = 0; off <= offset; off += sizeof(struct dirent)) {
         if (entry->length) {
@@ -128,13 +128,13 @@ iso9660fs_readi(struct inode* ip, char* dst, uint offset, uint size)
             memset(dst, 0, sizeof(struct dirent));
             memcpy(de->name, &entry->filename.str[1], entry->filename.len - trim);
             de->inum = org_addr + ((char*)entry - (char*)buf);
-            cprintf("   %d/dirent[%s:%d]\n", ip->inum, de->name, de->inum);
-            if(de->inum == 65864) { // TODO: remove this block
+            //cprintf("   %d/dirent[%s:%d]\n", ip->inum, de->name, de->inum);
+            /*if(de->inum == 65864) { // TODO: remove this block
                 uint data_addr = entry->extent*2048;
                 cprintf(" --------> Doing it:%d*2048=%d\n", entry->extent,data_addr );
                 read_block_range(buf,data_addr/512,1);
                 cprintf(" --------> Done it\n");
-            }
+            }*/
 
             if(off == offset) {
                 end_op();
@@ -152,7 +152,7 @@ iso9660fs_readi(struct inode* ip, char* dst, uint offset, uint size)
     return 0;
   }
   else if ( ip->type == T_FILE) {
-    cprintf("iso9660fs_readi(2): inode_num:%d addr:%d, offset:%d, size:%d\n", ip->inum, ip->addrs[0], offset, size); 
+    //cprintf("iso9660fs_readi(2): inode_num:%d addr:%d, offset:%d, size:%d\n", ip->inum, ip->addrs[0], offset, size); 
     /* XXX: We have to check the actual file size so need to read the file first, rather than its content at ip->addrs[0], which was filled in ipopulate() */
     uint addr = ip->inum;
     static char buf[2048] = {0};
@@ -161,7 +161,7 @@ iso9660fs_readi(struct inode* ip, char* dst, uint offset, uint size)
     read_block_range(buf,addr/512,4);
     struct iso9660_dir_s *entry = buf + ((int)addr % 512);
     memcpy(namebuf,&entry->filename.str[1],entry->filename.len);
-    cprintf("iso9660fs_readi(3) name: %s\n",namebuf);
+    /*cprintf("iso9660fs_readi(3) name: %s\n",namebuf);
       cprintf("length:%d\n"
               "xa_length:%d\n"
               "extent:%p\n"
@@ -177,7 +177,7 @@ iso9660fs_readi(struct inode* ip, char* dst, uint offset, uint size)
               entry->file_flags,
               entry->file_unit_size,
               entry->interleave_gap,
-              entry->volume_sequence_number);
+              entry->volume_sequence_number);*/
 
     if (offset < ip->size) {
       if (offset + size > ip->size) {
@@ -185,9 +185,9 @@ iso9660fs_readi(struct inode* ip, char* dst, uint offset, uint size)
       }
       static char file_buf[2048] = {0};
       uint data_addr = entry->extent*2048;
-      cprintf("iso9660fs_readi(4): %d\n", data_addr);
+      //cprintf("iso9660fs_readi(4): %d\n", data_addr);
       read_block_range(file_buf, data_addr/512, 4);
-      cprintf("iso9660fs_readi(5): %d\n", data_addr);
+      //cprintf("iso9660fs_readi(5): %d\n", data_addr);
       memcpy(dst, file_buf + offset, size);
       end_op();
       return size;
@@ -225,7 +225,7 @@ iso9660fsinit(char * const path, char * device)
     ip->addrs[0] = entry->extent*2048;
 
   */
-  cprintf("Mounting cdrom\n");
+  //cprintf("Mounting cdrom\n");
   begin_op();
   struct inode* mount_point = namei(path);
   if (mount_point) {
@@ -233,18 +233,19 @@ iso9660fsinit(char * const path, char * device)
     static struct iso9660_pvd_s pvd;
     read_block_range(&pvd,64,4);
     if(memcmp(pvd.id,"CD001",5)==0) {
-      cprintf("ID matched ISO9660 file system\n");
+      //cprintf("ID matched ISO9660 file system\n");
     }
     else {
       cprintf("ID mismatch\n");
       return;
     }
   
-  
+  /*
     cprintf("Root directory record version %d len %d size %d at %d, volume size %d block size %d set size %d.\n",pvd.version,
     pvd.root_directory_record.length,
     pvd.root_directory_record.size,
     pvd.root_directory_record.extent,pvd.volume_space_size*2048,pvd.logical_block_size,pvd.volume_set_size);
+    */
     
     uint addr = pvd.root_directory_record.extent*2048; // location of directory file in bytes      
     static char buf[2048];
@@ -252,6 +253,7 @@ iso9660fsinit(char * const path, char * device)
     struct iso9660_dir_s *entry = buf;
 
     /* XXX: cmd = mount iso9660 cdrom mnt */
+    /*
     while (entry->length) {
       char namebuf[100]={0};
       memcpy(namebuf,&entry->filename.str[1],entry->filename.len);
@@ -299,13 +301,15 @@ iso9660fsinit(char * const path, char * device)
       }
       entry = (struct iso9660_dir_s*) ((char*)entry+entry->length);
     }
+    */
 
 
     ilock(mount_point);
     mount_point->i_func = &iso9660fs_functions;
     mount_point->mounted_dev = 2;
     mount_point->addrs[0]=pvd.root_directory_record.extent*2048;    
-    cprintf("iso9660fs_init(): %d, addr:%d\n", mount_point->inum, mount_point->addrs[0]);
+    mount_point->mount_parent = nameiparent(path,buf);
+    //cprintf("iso9660fs_init(): %d, addr:%d\n", mount_point->inum, mount_point->addrs[0]);
     iunlock(mount_point);
   }
   end_op();
