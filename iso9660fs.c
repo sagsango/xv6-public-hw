@@ -307,6 +307,10 @@ iso9660fsinit(char * const path, char * device)
     ilock(mount_point);
     mount_point->i_func = &iso9660fs_functions;
     mount_point->mounted_dev = 2;
+    // This should be avoided because we alreay know the device id
+    // we can read and find this address again
+    // using addrs[0] of inode is not good. and will cause free of 
+    // addrs[0] block which is actually not present.
     mount_point->addrs[0]=pvd.root_directory_record.extent*2048;    
     mount_point->mount_parent = nameiparent(path,buf);
     //cprintf("iso9660fs_init(): %d, addr:%d\n", mount_point->inum, mount_point->addrs[0]);
