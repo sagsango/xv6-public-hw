@@ -17,3 +17,4 @@ kernelmemfs
 mkfs
 .gdbinit
 .gdb_history
+cscope.out
