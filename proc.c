@@ -498,6 +498,13 @@ end:
 }
 
 // Signal the process with the given pid and signal
+/*
+ *
+ * TODO:
+ *  Why we are killing it?
+ *  We should just raise the signal
+ *  So we have to update the code here.
+ */
 int
 kill(int pid, int signal)
 {
