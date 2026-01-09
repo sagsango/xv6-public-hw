@@ -25,6 +25,14 @@ int getpid(void);
 char* sbrk(uint64);
 int sleep(int);
 int uptime(void);
+int edu_getid(void);
+int edu_live_flip(void);
+int edu_fact(int n);
+int edu_intrcnt(void);
+int edu_irqstatus(void);
+int edu_rawirq(int val);
+int edu_dma_test(void);
+
 
 // ulib.c
 int stat(char*, struct stat*);

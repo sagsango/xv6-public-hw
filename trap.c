@@ -70,6 +70,10 @@ trap(struct trapframe *tf)
     uartintr();
     lapiceoi();
     break;
+  case T_IRQ0 + IRQ_EDU:
+    edu_intr();
+    lapiceoi();
+    break;
   case T_IRQ0 + 7:
   case T_IRQ0 + IRQ_SPURIOUS:
     cprintf("cpu%d: spurious interrupt at %p:%p\n",
@@ -79,6 +83,23 @@ trap(struct trapframe *tf)
 
   //PAGEBREAK: 13
   default:
+    if(tf->trapno == T_PGFLT){
+        uint64 va = rcr2();
+
+        cprintf("[PF] Page fault at VA=%p RIP=%p\n", va, tf->rip);
+
+        // check if this belongs to the EDU MMIO window
+        uint64 start = 0; //(uint64)P2V(edu_bar0_paddr);
+        uint64 end   = 0; //start + EDU_MMIO_SIZE;
+
+        if(va >= start && va < end){
+            cprintf("[PF] Mapping MMIO page for EDU device...\n");
+//            map_edu_mmio_page(va);
+            return;   // retry the faulting instruction
+        }
+
+        // else fall through to existing panic logic
+    }
     if(proc == 0 || (tf->cs&3) == 0){
       // In kernel, it must be our mistake.
       cprintf("unexpected trap %d from cpu %d rip %p (cr2=0x%p)\n",

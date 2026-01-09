@@ -12,7 +12,7 @@
 #define PCI_CONFIG_DATA    0xCFC
 
 // Bits in config address (mechanism #1)
-static uint
+uint   // <-- remove static so edu.c can call it
 pci_config_addr(uchar bus, uchar dev, uchar func, uchar offset)
 {
   return (1U << 31)          // enable bit
@@ -22,7 +22,7 @@ pci_config_addr(uchar bus, uchar dev, uchar func, uchar offset)
        | (offset & 0xFC);    // dword aligned
 }
 
-static uint
+uint   // <-- remove static
 pci_read32(uchar bus, uchar dev, uchar func, uchar offset)
 {
   uint addr = pci_config_addr(bus, dev, func, offset);
@@ -30,7 +30,7 @@ pci_read32(uchar bus, uchar dev, uchar func, uchar offset)
   return inl(PCI_CONFIG_DATA);
 }
 
-static ushort
+ushort  // <-- remove static
 pci_read16(uchar bus, uchar dev, uchar func, uchar offset)
 {
   uint v = pci_read32(bus, dev, func, offset & ~3);
@@ -38,7 +38,7 @@ pci_read16(uchar bus, uchar dev, uchar func, uchar offset)
   return (v >> shift) & 0xFFFF;
 }
 
-static uchar
+uchar  // <-- remove static
 pci_read8(uchar bus, uchar dev, uchar func, uchar offset)
 {
   uint v = pci_read32(bus, dev, func, offset & ~3);
@@ -46,21 +46,37 @@ pci_read8(uchar bus, uchar dev, uchar func, uchar offset)
   return (v >> shift) & 0xFF;
 }
 
+// Write is needed for future capabilities/DMA masks etc
+void
+pci_write32(uchar bus, uchar dev, uchar func, uchar offset, uint val)
+{
+  uint addr = pci_config_addr(bus, dev, func, offset);
+  outl(PCI_CONFIG_ADDRESS, addr);
+  outl(PCI_CONFIG_DATA, val);
+}
+
 // Offsets in PCI config space
-#define PCI_VENDOR_ID   0x00
-#define PCI_DEVICE_ID   0x02
-#define PCI_COMMAND     0x04
-#define PCI_STATUS      0x06
-#define PCI_CLASS_CODE  0x0B
-#define PCI_SUBCLASS    0x0A
-#define PCI_PROG_IF     0x09
-#define PCI_HEADER_TYPE 0x0E
+#define PCI_VENDOR_ID       0x00
+#define PCI_DEVICE_ID       0x02
+#define PCI_COMMAND         0x04
+#define PCI_STATUS          0x06
+#define PCI_CLASS_CODE      0x0B
+#define PCI_SUBCLASS        0x0A
+#define PCI_PROG_IF         0x09
+#define PCI_HEADER_TYPE     0x0E
+#define PCI_BAR0            0x10     // added
+#define PCI_INTERRUPT_LINE  0x3C     // added
 
 // Very small name helper for some common classes (optional)
 static char *
 pci_class_name(uchar class, uchar subclass)
 {
   switch(class) {
+  case 0x00:
+    switch(subclass) {
+        case 0xff: return "edu device";
+        default: return "unkown subclass";
+    }
   case 0x01: // mass storage
     switch(subclass) {
     case 0x01: return "IDE controller";
@@ -83,8 +99,12 @@ pci_class_name(uchar class, uchar subclass)
   }
 }
 
+// Forward declaration
+extern void edu_attach(uint bar0_raw, uchar irq_line);
+
 #define MAX_BUS 256
 #define AVAILABLE_BUS 1
+
 void
 pci_scan(void)
 {
@@ -94,6 +114,7 @@ pci_scan(void)
   for(uchar bus = 0; bus < n_bus; bus++) {
     for(uchar dev = 0; dev < 32; dev++) {
       for(uchar func = 0; func < 8; func++) {
+
         ushort vendor = pci_read16(bus, dev, func, PCI_VENDOR_ID);
         if(vendor == 0xFFFF)
           continue;  // no device here
@@ -104,13 +125,30 @@ pci_scan(void)
         uchar  prog_if  = pci_read8(bus, dev, func, PCI_PROG_IF);
         uchar  hdr      = pci_read8(bus, dev, func, PCI_HEADER_TYPE);
 
-        cprintf("bus %d dev %d func %x: "
-                "vendor %d device %d "
-                "class %d subclass %d prog_if %d hdr %d  (%s)\n",
+        cprintf("bus %d dev %d func %d: "
+                "vendor 0x%x device 0x%x "
+                "class 0x%x subclass 0x%x prog_if 0x%x hdr 0x%x  (%s)\n",
                 bus, dev, func,
                 vendor, device,
                 class, subclass, prog_if, hdr,
                 pci_class_name(class, subclass));
+
+        // ********** EDU DEVICE *************
+        if (vendor == 0x1234 && device == 0x11e8) {
+
+          // Read BAR0 (MMIO)
+          uint bar0 = pci_read32(bus, dev, func, PCI_BAR0);
+
+          // Read interrupt line from PCI config space
+          uchar irq_line = pci_read8(bus, dev, func, PCI_INTERRUPT_LINE);
+
+          cprintf("  -> Found EDU at %d:%d.%d BAR0=0x%x IRQ=%d\n",
+                  bus, dev, func, bar0, irq_line);
+
+          // Fully initialize the EDU device
+          edu_attach(bar0, irq_line);
+        }
+
       }
     }
   }

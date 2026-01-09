@@ -87,3 +87,59 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+int
+sys_edu_getid(void)
+{
+  return (int)edu_get_id();
+}
+
+int
+sys_edu_live_flip(void)
+{
+  return (int)edu_liveness_flip();
+}
+
+int
+sys_edu_fact(void)
+{
+  int n;
+  if (argint(0, &n) < 0)
+    return -1;
+
+  uint res;
+  if (edu_factorial((uint)n, &res) < 0)
+    return -1;
+
+  return (int)res;
+}
+
+int
+sys_edu_intrcnt(void)
+{
+  return (int)edu_get_intr_count();
+}
+
+int
+sys_edu_irqstatus(void)
+{
+  return (int)edu_get_last_irq_status();
+}
+
+int
+sys_edu_rawirq(void)
+{
+  int v;
+  if (argint(0, &v) < 0)
+    return -1;
+
+  edu_raise_irq((uint)v);
+  return 0;
+}
+
+int
+sys_edu_dma_test(void)
+{
+  return edu_dma_test();
+}
+

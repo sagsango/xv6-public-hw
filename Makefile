@@ -2,6 +2,7 @@ KERNOBJS = \
 	bio.o console.o exec.o file.o fs.o ide.o ioapic.o kalloc.o kbd.o lapic.o \
   log.o main.o mp.o pipe.o proc.o sleeplock.o spinlock.o string.o swtch.o \
   syscall.o sysfile.o sysproc.o trapasm.o trap.o uart.o vectors.o vm.o pci.o \
+  edu.o \
 #
 
 UNAME_S := $(shell uname -s)
@@ -157,7 +158,9 @@ ifndef CPUS
 CPUS := 2
 endif
 QEMUOPTS = -nic none -hda xv6.img -hdb fs.img -smp $(CPUS) -m 512 $(QEMUEXTRA) \
-		   -monitor telnet:localhost:4444,server,nowait
+		   -monitor telnet:localhost:4444,server,nowait \
+		   -machine pc,pci-memory-region-size=256M \
+		   -device edu
 
 qemu: fs.img xv6.img
 	$(QEMU) -serial mon:stdio $(QEMUOPTS)

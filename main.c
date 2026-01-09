@@ -32,7 +32,7 @@ main(void)
    *      now cprintf() will work so we will
    *      print the pci devices now
    */
-  pci_scan();
+  //pci_scan();
 
   uartinit();      // serial port
   pinit();         // process table
@@ -63,6 +63,7 @@ mpmain(void)
   idtinit();       // load idt register
   syscallinit();   // syscall set up
   xchg(&cpu->started, 1); // tell startothers() we're up
+  pci_scan();
   scheduler();     // start running processes
 }
 

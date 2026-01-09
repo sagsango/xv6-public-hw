@@ -188,6 +188,22 @@ void            clearpteu(pde_t *pgdir, char *uva);
 
 // pci.c
 void pci_scan(void);
+unsigned int   pci_read32(unsigned char, unsigned char, unsigned char, unsigned char);
+unsigned short pci_read16(unsigned char, unsigned char, unsigned char, unsigned char);
+unsigned char  pci_read8(unsigned char, unsigned char, unsigned char, unsigned char);
+void   pci_write32(unsigned char, unsigned char, unsigned char, unsigned char, unsigned int);
+
+// edu.c
+void            edu_attach(unsigned int bar0_raw, unsigned char irq_line);
+void            edu_intr(void);
+unsigned int   edu_get_intr_count(void);
+unsigned int   edu_get_last_irq_status(void);
+unsigned char  edu_get_irq(void);
+void   edu_raise_irq(unsigned int val);
+unsigned int   edu_get_id(void);
+unsigned int   edu_liveness_flip(void);
+int    edu_factorial(unsigned int n, unsigned int *result);
+int    edu_dma_test(void);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

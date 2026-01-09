@@ -20,3 +20,12 @@
 #define SYS_link   19
 #define SYS_mkdir  20
 #define SYS_close  21
+
+#define SYS_edu_getid      22
+#define SYS_edu_live_flip  23
+#define SYS_edu_fact       24
+#define SYS_edu_intrcnt    25
+#define SYS_edu_irqstatus  26
+#define SYS_edu_rawirq     27
+#define SYS_edu_dma_test   28
+

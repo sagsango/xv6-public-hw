@@ -123,6 +123,14 @@ extern addr_t sys_wait(void);
 extern addr_t sys_write(void);
 extern addr_t sys_uptime(void);
 
+extern addr_t sys_edu_getid(void);
+extern addr_t sys_edu_live_flip(void);
+extern addr_t sys_edu_fact(void);
+extern addr_t sys_edu_intrcnt(void);
+extern addr_t sys_edu_irqstatus(void);
+extern addr_t sys_edu_rawirq(void);
+extern addr_t sys_edu_dma_test(void);
+
 // PAGEBREAK!
 static addr_t (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -146,6 +154,14 @@ static addr_t (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
+
+[SYS_edu_getid]     sys_edu_getid,
+[SYS_edu_live_flip] sys_edu_live_flip,
+[SYS_edu_fact]      sys_edu_fact,
+[SYS_edu_intrcnt]   sys_edu_intrcnt,
+[SYS_edu_irqstatus] sys_edu_irqstatus,
+[SYS_edu_rawirq]    sys_edu_rawirq,
+[SYS_edu_dma_test]  sys_edu_dma_test,
 };
 
 void
