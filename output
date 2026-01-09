@@ -1,0 +1,103 @@
+# Boot logs
+xv6-public-hw ❱❱❱ make qemu
+dd if=/dev/zero of=xv6.img count=10000
+10000+0 records in
+10000+0 records out
+5120000 bytes transferred in 0.033110 secs (154636062 bytes/sec)
+dd if=bootblock of=xv6.img conv=notrunc
+1+0 records in
+1+0 records out
+512 bytes transferred in 0.000261 secs (1961686 bytes/sec)
+dd if=kernel of=xv6.img seek=1 conv=notrunc
+331+1 records in
+331+1 records out
+169816 bytes transferred in 0.002057 secs (82555177 bytes/sec)
+qemu-system-x86_64 -serial mon:stdio -nic none -hda xv6.img -hdb fs.img -smp 2 -m 512  -monitor telnet:localhost:4444,server,nowait -device pci-serial,chardev=ps0 -chardev file,id=ps0,path=pci_output.log
+WARNING: Image format was not specified for 'xv6.img' and probing guessed raw.
+         Automatically detecting the format is dangerous for raw images, write operations on block 0 will be restricted.
+         Specify the 'raw' format explicitly to remove the restrictions.
+WARNING: Image format was not specified for 'fs.img' and probing guessed raw.
+         Automatically detecting the format is dangerous for raw images, write operations on block 0 will be restricted.
+         Specify the 'raw' format explicitly to remove the restrictions.
+xv6...
+Seems we are SMP, ncpu = 1
+
+cpu0: starting Fall 2021 xv6
+
+=== PCI devices ===
+bus 00000000 dev 00000000 func 00000000: vendor 00008086 device 00001237 class 00000006 subclass 00000000 prog_if 00000000 hdr 00000000  (Host bridge)
+bus 00000000 dev 00000001 func 00000000: vendor 00008086 device 00007000 class 00000006 subclass 00000001 prog_if 00000000 hdr 00000080  (ISA bridge)
+bus 00000000 dev 00000001 func 00000001: vendor 00008086 device 00007010 class 00000001 subclass 00000001 prog_if 00000080 hdr 00000000  (IDE controller)
+bus 00000000 dev 00000001 func 00000003: vendor 00008086 device 00007113 class 00000006 subclass 00000080 prog_if 00000000 hdr 00000000  (Bridge device)
+bus 00000000 dev 00000002 func 00000000: vendor 00001234 device 00001111 class 00000003 subclass 00000000 prog_if 00000000 hdr 00000000  (Display controller)
+bus 00000000 dev 00000003 func 00000000: vendor 00001b36 device 00000002 class 00000007 subclass 00000000 prog_if 00000002 hdr 00000000  (serial controller)
+------------ Device driver initilization <BEGIN> -------------
+Found QEMU PCI serial controller at bus 0 dev 3 func 0
+PCI-serial BAR0 IO base = 000000000000c010
+PCI-serial initialized at I/O 0x0000c010
+------------ Device sriver initilization <END> -------------
+=== PCI scan done ===
+cpu0: starting
+init: starting sh
+$ QEMU: Terminated
+xv6-public-hw ❱❱❱ cat pci_output.log
+hello%
+
+
+
+
+# qemu-monitor logs
+xv6-public-hw ❱❱❱ telnet localhost 4444
+Trying ::1...
+Connected to localhost.
+Escape character is '^]'.
+QEMU 10.1.0 monitor - type 'help' for more information
+(qemu) info pci
+  Bus  0, device   0, function 0:
+    Host bridge: PCI device 8086:1237
+      PCI subsystem 1af4:1100
+      id ""
+  Bus  0, device   1, function 0:
+    ISA bridge: PCI device 8086:7000
+      PCI subsystem 1af4:1100
+      id ""
+  Bus  0, device   1, function 1:
+    IDE controller: PCI device 8086:7010
+      PCI subsystem 1af4:1100
+      BAR4: I/O at 0xc000 [0xc00f]
+      id ""
+  Bus  0, device   1, function 3:
+    Bridge: PCI device 8086:7113
+      PCI subsystem 1af4:1100
+      IRQ 9, pin A
+      id ""
+  Bus  0, device   2, function 0:
+    VGA controller: PCI device 1234:1111
+      PCI subsystem 1af4:1100
+      BAR0: 32 bit prefetchable memory at 0xfd000000 [0xfdffffff]
+      BAR2: 32 bit memory at 0xfebf0000 [0xfebf0fff]
+      BAR6: 32 bit memory (not mapped)
+      id ""
+  Bus  0, device   3, function 0:
+    Serial port: PCI device 1b36:0002
+      PCI subsystem 1af4:1100
+      IRQ 11, pin A
+      BAR0: I/O at 0xc010 [0xc017]
+      id ""
+(qemu) info chardev
+parallel0: filename=vc
+serial0: filename=mux
+ps0: filename=file
+compat_monitor0: filename=telnet:[::1]:4444,server=on <-> [::1]:60170
+serial0-base: filename=stdio
+(qemu) info irq
+IRQ statistics for ioapic:
+ 0: 1383
+ 4: 1
+14: 163
+IRQ statistics for isa-i8259:
+ 0: 1383
+ 2: 1
+ 4: 1
+14: 163
+(qemu) Connection closed by foreign host.

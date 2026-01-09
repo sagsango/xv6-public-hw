@@ -159,7 +159,8 @@ CPUS := 2
 endif
 QEMUOPTS = -nic none -hda xv6.img -hdb fs.img -smp $(CPUS) -m 512 $(QEMUEXTRA) \
 		   -monitor telnet:localhost:4444,server,nowait \
-		   -device pci-serial
+           -device pci-serial,chardev=ps0 \
+           -chardev file,id=ps0,path=pci_output.log
 
 qemu: fs.img xv6.img
 	$(QEMU) -serial mon:stdio $(QEMUOPTS)
