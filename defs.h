@@ -186,5 +186,8 @@ void            switchkvm(void);
 int             copyout(pde_t*, addr_t, void*, uint64);
 void            clearpteu(pde_t *pgdir, char *uva);
 
+// pci.c
+void pci_scan(void);
+
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

@@ -27,6 +27,13 @@ main(void)
   cprintf("\ncpu%d: starting Fall 2021 xv6\n\n", cpunum());
   ioapicinit();    // another interrupt controller
   consoleinit();   // console hardware
+
+  /* XXX: console device has been inited
+   *      now cprintf() will work so we will
+   *      print the pci devices now
+   */
+  pci_scan();
+
   uartinit();      // serial port
   pinit();         // process table
   binit();         // buffer cache
