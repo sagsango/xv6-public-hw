@@ -78,6 +78,11 @@ pci_class_name(uchar class, uchar subclass)
     case 0x04: return "PCI-to-PCI bridge";
     default:   return "Bridge device";
     }
+  case 0x07:
+    switch(subclass) {
+        case 0x00: return "serial controller";
+        default: return "Unknown class";
+    }
   default:
     return "Unknown class";
   }
@@ -104,13 +109,29 @@ pci_scan(void)
         uchar  prog_if  = pci_read8(bus, dev, func, PCI_PROG_IF);
         uchar  hdr      = pci_read8(bus, dev, func, PCI_HEADER_TYPE);
 
-        cprintf("bus %d dev %d func %x: "
-                "vendor %d device %d "
-                "class %d subclass %d prog_if %d hdr %d  (%s)\n",
+        cprintf("bus %x dev %x func %x: "
+                "vendor %x device %x "
+                "class %x subclass %x prog_if %x hdr %x  (%s)\n",
                 bus, dev, func,
                 vendor, device,
                 class, subclass, prog_if, hdr,
                 pci_class_name(class, subclass));
+
+
+        /* Init the device driver for serial console */
+        if (vendor == 0x1b36 && device == 0x0002) {
+            cprintf("------------ Device driver initilization <BEGIN> -------------\n");
+            cprintf("Found QEMU PCI serial controller at bus %d dev %d func %d\n",
+                    bus, dev, func);
+
+            // BAR0 read
+            uint32 bar0 = pci_read32(bus, dev, func, 0x10);
+            uint32 io_base = bar0 & ~0x3;   // lowest 2 bits must be masked
+            cprintf("PCI-serial BAR0 IO base = %p\n", io_base);
+
+            pciserial_init(io_base);
+            cprintf("------------ Device sriver initilization <END> -------------\n");
+        }
       }
     }
   }

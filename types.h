@@ -1,4 +1,6 @@
 #pragma once
+#include <stdint.h>
+
 typedef unsigned int   uint;
 typedef unsigned short ushort;
 typedef unsigned char  uchar;
@@ -6,6 +8,7 @@ typedef unsigned char  uchar;
 typedef long          int64;
 typedef unsigned int  uint32;
 typedef unsigned long uint64;
+typedef uint16_t      uint16;
 
 typedef unsigned long addr_t;
 

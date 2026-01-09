@@ -187,7 +187,11 @@ int             copyout(pde_t*, addr_t, void*, uint64);
 void            clearpteu(pde_t *pgdir, char *uva);
 
 // pci.c
-void pci_scan(void);
+void            pci_scan(void);
+
+// pciserial.c
+void            pciserial_init(uint32 io);
+void            pciserial_putc(int c);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
