@@ -1,0 +1,46 @@
+# Bootlog
+=== PCI devices ===
+bus 0 dev 0 func 00000000: vendor 32902 device 4663 class 6 subclass 0 prog_if 0 hdr 0  (Host bridge)
+bus 0 dev 1 func 00000000: vendor 32902 device 28672 class 6 subclass 1 prog_if 0 hdr 128  (ISA bridge)
+bus 0 dev 1 func 00000001: vendor 32902 device 28688 class 1 subclass 1 prog_if 128 hdr 0  (IDE controller)
+bus 0 dev 1 func 00000003: vendor 32902 device 28947 class 6 subclass 128 prog_if 0 hdr 0  (Bridge device)
+bus 0 dev 2 func 00000000: vendor 4660 device 4369 class 3 subclass 0 prog_if 0 hdr 0  (Display controller)
+=== PCI scan done ===
+
+
+
+
+
+# Qemu monitor log
+xv6-public-hw ❱❱❱ telnet localhost 4444
+Trying ::1...
+Connected to localhost.
+Escape character is '^]'.
+QEMU 10.1.0 monitor - type 'help' for more information
+(qemu) info pci
+  Bus  0, device   0, function 0:
+    Host bridge: PCI device 8086:1237
+      PCI subsystem 1af4:1100
+      id ""
+  Bus  0, device   1, function 0:
+    ISA bridge: PCI device 8086:7000
+      PCI subsystem 1af4:1100
+      id ""
+  Bus  0, device   1, function 1:
+    IDE controller: PCI device 8086:7010
+      PCI subsystem 1af4:1100
+      BAR4: I/O at 0xc000 [0xc00f]
+      id ""
+  Bus  0, device   1, function 3:
+    Bridge: PCI device 8086:7113
+      PCI subsystem 1af4:1100
+      IRQ 9, pin A
+      id ""
+  Bus  0, device   2, function 0:
+    VGA controller: PCI device 1234:1111
+      PCI subsystem 1af4:1100
+      BAR0: 32 bit prefetchable memory at 0xfd000000 [0xfdffffff]
+      BAR2: 32 bit memory at 0xfebf0000 [0xfebf0fff]
+      BAR6: 32 bit memory (not mapped)
+      id ""
+(qemu) Connection closed by foreign host.
