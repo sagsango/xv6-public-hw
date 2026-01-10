@@ -1,22 +1,84 @@
-# Bootlog
-=== PCI devices ===
-bus 0 dev 0 func 00000000: vendor 32902 device 4663 class 6 subclass 0 prog_if 0 hdr 0  (Host bridge)
-bus 0 dev 1 func 00000000: vendor 32902 device 28672 class 6 subclass 1 prog_if 0 hdr 128  (ISA bridge)
-bus 0 dev 1 func 00000001: vendor 32902 device 28688 class 1 subclass 1 prog_if 128 hdr 0  (IDE controller)
-bus 0 dev 1 func 00000003: vendor 32902 device 28947 class 6 subclass 128 prog_if 0 hdr 0  (Bridge device)
-bus 0 dev 2 func 00000000: vendor 4660 device 4369 class 3 subclass 0 prog_if 0 hdr 0  (Display controller)
-=== PCI scan done ===
+# TODO: 1. Why its working? because memory is not mapped
+# TODO: 2. map the whole mmio memory for the edu-device
 
 
 
+# userspace
+$ edu_demo
+=== EDU demo ===
+Choose an option:
+0: test_id_and_liveness
+1: test_raw_irq
+2: test_factorial
+3: test_dma
+0
+EDU: ID reg = 0x010000ed
+EDU: liveness flip 1 -> 0x00000000, flip 2 -> 0x00000000
+Choose an option:
+0: test_id_and_liveness
+1: test_raw_irq
+2: test_factorial
+3: test_dma
+1
+EDU: IRQ count before raw IRQ = 57
+EDU: raising raw IRQ with value 0x55...
+EDU: IRQ, irq_status=0x00000055 total=58
+EDU: IRQ count after  raw IRQ = 58 (delta=1), last irq_status=0x00000055
+Choose an option:
+0: test_id_and_liveness
+1: test_raw_irq
+2: test_factorial
+3: test_dma
+2
+EDU: IRQ, irq_status=0x00000001 total=59
+EDU: factorial(0) = 1
+EDU: IRQ, irq_status=0x00000001 total=60
+EDU: factorial(1) = 1
+EDU: IRQ, irq_status=0x00000001 total=61
+EDU: factorial(2) = 2
+EDU: IRQ, irq_status=0x00000001 total=62
+EDU: factorial(3) = 6
+EDU: IRQ, irq_status=0x00000001 total=63
+EDU: factorial(4) = 24
+EDU: IRQ, irq_status=0x00000001 total=64
+EDU: factorial(5) = 120
+EDU: IRQ, irq_status=0x00000001 total=65
+EDU: factorial(6) = 720
+EDU: IRQ, irq_status=0x00000001 total=66
+EDU: factorial(7) = 5040
+EDU: IRQ, irq_status=0x00000001 total=67
+EDU: factorial(8) = 40320
+EDU: IRQ, irq_status=0x00000001 total=68
+EDU: factorial(9) = 362880
+EDU: IRQ, irq_status=0x00000001 total=69
+EDU: factorial(10) = 3628800
+EDU: IRQ count before fact = 58, after = 69 (delta=11)
+EDU: last IRQ status after factorial tests = 0x00000001
+Choose an option:
+0: test_id_and_liveness
+1: test_raw_irq
+2: test_factorial
+3: test_dma
+3
+EDU: starting DMA roundtrip test...
+EDU: IRQ, irq_status=0x00000100 total=70
+EDU: DMA roundtrip FAILED
+EDU: IRQ count before DMA = 69, after = 70 (delta=1)
+EDU: last IRQ status after DMA = 0x00000100
+Choose an option:
+0: test_id_and_liveness
+1: test_raw_irq
+2: test_factorial
+3: test_dma
+QEMU: Terminated
 
 
-# Qemu monitor log
+# Qemu monitor
 xv6-public-hw ❱❱❱ telnet localhost 4444
 Trying ::1...
 Connected to localhost.
 Escape character is '^]'.
-QEMU 10.1.0 monitor - type 'help' for more information
+QEMU 10.0.2 monitor - type 'help' for more information
 (qemu) info pci
   Bus  0, device   0, function 0:
     Host bridge: PCI device 8086:1237
@@ -40,7 +102,278 @@ QEMU 10.1.0 monitor - type 'help' for more information
     VGA controller: PCI device 1234:1111
       PCI subsystem 1af4:1100
       BAR0: 32 bit prefetchable memory at 0xfd000000 [0xfdffffff]
-      BAR2: 32 bit memory at 0xfebf0000 [0xfebf0fff]
+      BAR2: 32 bit memory at 0xfeb10000 [0xfeb10fff]
       BAR6: 32 bit memory (not mapped)
       id ""
-(qemu) Connection closed by foreign host.
+  Bus  0, device   3, function 0:
+    Class 0255: PCI device 1234:11e8
+      PCI subsystem 1af4:1100
+      IRQ 11, pin A
+      BAR0: 32 bit memory at 0xfea00000 [0xfeafffff]
+      id ""
+(qemu) info irq
+IRQ statistics for ioapic:
+ 0: 4204
+ 1: 2
+ 4: 82
+11: 57
+14: 190
+IRQ statistics for isa-i8259:
+ 0: 4204
+ 1: 2
+ 2: 1
+ 4: 82
+11: 57
+14: 190
+(qemu) info pic
+ioapic0: ver=0x20 id=0x00 sel=0x27 (redir[11])
+  pin 0  0x0000000000010020 dest=0 vec=32  active-hi edge  masked fixed  physical
+  pin 1  0x0000000000000021 dest=0 vec=33  active-hi edge         fixed  physical
+  pin 2  0x0000000000010022 dest=0 vec=34  active-hi edge  masked fixed  physical
+  pin 3  0x0000000000010023 dest=0 vec=35  active-hi edge  masked fixed  physical
+  pin 4  0x0000000000000024 dest=0 vec=36  active-hi edge         fixed  physical
+  pin 5  0x0000000000010025 dest=0 vec=37  active-hi edge  masked fixed  physical
+  pin 6  0x0000000000010026 dest=0 vec=38  active-hi edge  masked fixed  physical
+  pin 7  0x0000000000010027 dest=0 vec=39  active-hi edge  masked fixed  physical
+  pin 8  0x0000000000010028 dest=0 vec=40  active-hi edge  masked fixed  physical
+  pin 9  0x0000000000010029 dest=0 vec=41  active-hi edge  masked fixed  physical
+  pin 10 0x000000000001002a dest=0 vec=42  active-hi edge  masked fixed  physical
+  pin 11 0x000000000000002b dest=0 vec=43  active-hi edge         fixed  physical
+  pin 12 0x000000000001002c dest=0 vec=44  active-hi edge  masked fixed  physical
+  pin 13 0x000000000001002d dest=0 vec=45  active-hi edge  masked fixed  physical
+  pin 14 0x000000000000002e dest=0 vec=46  active-hi edge         fixed  physical
+  pin 15 0x000000000001002f dest=0 vec=47  active-hi edge  masked fixed  physical
+  pin 16 0x0000000000010030 dest=0 vec=48  active-hi edge  masked fixed  physical
+  pin 17 0x0000000000010031 dest=0 vec=49  active-hi edge  masked fixed  physical
+  pin 18 0x0000000000010032 dest=0 vec=50  active-hi edge  masked fixed  physical
+  pin 19 0x0000000000010033 dest=0 vec=51  active-hi edge  masked fixed  physical
+  pin 20 0x0000000000010034 dest=0 vec=52  active-hi edge  masked fixed  physical
+  pin 21 0x0000000000010035 dest=0 vec=53  active-hi edge  masked fixed  physical
+  pin 22 0x0000000000010036 dest=0 vec=54  active-hi edge  masked fixed  physical
+  pin 23 0x0000000000010037 dest=0 vec=55  active-hi edge  masked fixed  physical
+  IRR      (none)
+  Remote IRR (none)
+pic1: irr=40 imr=8e isr=00 hprio=0 irq_base=70 rr_sel=0 elcr=0c fnm=0
+pic0: irr=17 imr=b8 isr=00 hprio=0 irq_base=08 rr_sel=0 elcr=00 fnm=0
+(qemu) info lapic
+dumping local APIC state for CPU 0
+
+LVT0	 0x00010000 active-hi edge  masked                      Fixed  (vec 0)
+LVT1	 0x00010000 active-hi edge  masked                      Fixed  (vec 0)
+LVTPC	 0x00010000 active-hi edge  masked                      Fixed  (vec 0)
+LVTERR	 0x00000033 active-hi edge                              Fixed  (vec 51)
+LVTTHMR	 0x00010000 active-hi edge  masked                      Fixed  (vec 0)
+LVTT	 0x00020020 active-hi edge                 periodic     Fixed  (vec 32)
+Timer	 DCR=0xb (divide by 1) initial_count = 10000000 current_count = 7252922
+SPIV	 0x0000013f APIC enabled, focus=off, spurious vec 63
+ICR	 0x00088500 physical level de-assert all-self
+ICR2	 0x00000000
+ESR	 0x00000000
+ISR	 (none)
+IRR	 (none)
+
+APR 0x00 TPR 0x00 DFR 0x0f LDR 0x00 PPR 0x00
+(qemu)
+
+
+# NOTE01:
+• IRR empty →
+No pending interrupts waiting to be accepted by the LAPIC.
+• ISR empty →
+No interrupts are currently being handled by the CPU.
+
+# NOTES02:
+info irq give how many times irq has been raised since boot
+
+# NOTES03:
+Ask gpt about the output of info pic, and info apic for more detail
+
+# NOTES04:
+BAR0: 32 bit memory at 0xfea00000 [0xfeafffff]
+So this device has 1MB of the physical memory for mmio [0xfea00000, 0xfeafffff]
+
+
+
+# mtree
+(qemu) info mtree
+address-space: cpu-smm-1
+  0000000000000000-ffffffffffffffff (prio 0, i/o): memory
+    0000000000000000-00000000ffffffff (prio 1, i/o): alias smram @smram 0000000000000000-00000000ffffffff
+    0000000000000000-ffffffffffffffff (prio 0, i/o): alias memory @system 0000000000000000-ffffffffffffffff
+
+address-space: cpu-smm-0
+  0000000000000000-ffffffffffffffff (prio 0, i/o): memory
+    0000000000000000-00000000ffffffff (prio 1, i/o): alias smram @smram 0000000000000000-00000000ffffffff
+    0000000000000000-ffffffffffffffff (prio 0, i/o): alias memory @system 0000000000000000-ffffffffffffffff
+
+address-space: VGA
+  0000000000000000-ffffffffffffffff (prio 0, i/o): bus master container
+
+address-space: i440FX
+  0000000000000000-ffffffffffffffff (prio 0, i/o): bus master container
+
+address-space: edu
+  0000000000000000-ffffffffffffffff (prio 0, i/o): bus master container
+
+address-space: I/O
+  0000000000000000-000000000000ffff (prio 0, i/o): io
+    0000000000000000-0000000000000007 (prio 0, i/o): dma-chan
+    0000000000000008-000000000000000f (prio 0, i/o): dma-cont
+    0000000000000020-0000000000000021 (prio 0, i/o): pic
+    0000000000000040-0000000000000043 (prio 0, i/o): pit
+    0000000000000060-0000000000000060 (prio 0, i/o): i8042-data
+    0000000000000061-0000000000000061 (prio 0, i/o): pcspk
+    0000000000000064-0000000000000064 (prio 0, i/o): i8042-cmd
+    0000000000000070-0000000000000071 (prio 0, i/o): rtc
+      0000000000000070-0000000000000070 (prio 0, i/o): rtc-index
+    000000000000007e-000000000000007f (prio 0, i/o): kvmvapic
+    0000000000000080-0000000000000080 (prio 0, i/o): ioport80
+    0000000000000081-0000000000000083 (prio 0, i/o): dma-page
+    0000000000000087-0000000000000087 (prio 0, i/o): dma-page
+    0000000000000089-000000000000008b (prio 0, i/o): dma-page
+    000000000000008f-000000000000008f (prio 0, i/o): dma-page
+    0000000000000092-0000000000000092 (prio 0, i/o): port92
+    00000000000000a0-00000000000000a1 (prio 0, i/o): pic
+    00000000000000b2-00000000000000b3 (prio 0, i/o): apm-io
+    00000000000000c0-00000000000000cf (prio 0, i/o): dma-chan
+    00000000000000d0-00000000000000df (prio 0, i/o): dma-cont
+    00000000000000f0-00000000000000f0 (prio 0, i/o): ioportF0
+    0000000000000170-0000000000000177 (prio 0, i/o): ide
+    00000000000001ce-00000000000001d1 (prio 0, i/o): vbe
+    00000000000001f0-00000000000001f7 (prio 0, i/o): ide
+    0000000000000376-0000000000000376 (prio 0, i/o): ide
+    0000000000000378-000000000000037f (prio 0, i/o): parallel
+    00000000000003b4-00000000000003b5 (prio 0, i/o): vga
+    00000000000003ba-00000000000003ba (prio 0, i/o): vga
+    00000000000003c0-00000000000003cf (prio 0, i/o): vga
+    00000000000003d4-00000000000003d5 (prio 0, i/o): vga
+    00000000000003da-00000000000003da (prio 0, i/o): vga
+    00000000000003f1-00000000000003f5 (prio 0, i/o): fdc
+    00000000000003f6-00000000000003f6 (prio 0, i/o): ide
+    00000000000003f7-00000000000003f7 (prio 0, i/o): fdc
+    00000000000003f8-00000000000003ff (prio 0, i/o): serial
+    00000000000004d0-00000000000004d0 (prio 0, i/o): elcr
+    00000000000004d1-00000000000004d1 (prio 0, i/o): elcr
+    0000000000000510-0000000000000511 (prio 0, i/o): fwcfg
+    0000000000000514-000000000000051b (prio 0, i/o): fwcfg.dma
+    0000000000000600-000000000000063f (prio 0, i/o): piix4-pm
+      0000000000000600-0000000000000603 (prio 0, i/o): acpi-evt
+      0000000000000604-0000000000000605 (prio 0, i/o): acpi-cnt
+      0000000000000608-000000000000060b (prio 0, i/o): acpi-tmr
+    0000000000000700-000000000000073f (prio 0, i/o): pm-smbus
+    0000000000000cf8-0000000000000cfb (prio 0, i/o): pci-conf-idx
+    0000000000000cf9-0000000000000cf9 (prio 1, i/o): piix-reset-control
+    0000000000000cfc-0000000000000cff (prio 0, i/o): pci-conf-data
+    0000000000005658-0000000000005658 (prio 0, i/o): vmport
+    000000000000ae00-000000000000ae17 (prio 0, i/o): acpi-pci-hotplug
+    000000000000af00-000000000000af1f (prio 0, i/o): acpi-cpu-hotplug
+    000000000000afe0-000000000000afe3 (prio 0, i/o): acpi-gpe0
+    000000000000c000-000000000000c00f (prio 1, i/o): piix-bmdma-container
+      000000000000c000-000000000000c003 (prio 0, i/o): piix-bmdma
+      000000000000c004-000000000000c007 (prio 0, i/o): bmdma
+      000000000000c008-000000000000c00b (prio 0, i/o): piix-bmdma
+      000000000000c00c-000000000000c00f (prio 0, i/o): bmdma
+
+address-space: PIIX3
+  0000000000000000-ffffffffffffffff (prio 0, i/o): bus master container
+
+address-space: cpu-memory-0
+address-space: cpu-memory-1
+address-space: memory
+  0000000000000000-ffffffffffffffff (prio 0, i/o): system
+    0000000000000000-000000001fffffff (prio 0, ram): alias ram-below-4g @pc.ram 0000000000000000-000000001fffffff
+    0000000000000000-ffffffffffffffff (prio -1, i/o): pci
+      00000000000a0000-00000000000bffff (prio 1, i/o): vga-lowmem
+      00000000000c0000-00000000000dffff (prio 1, rom): pc.rom
+      00000000000e0000-00000000000fffff (prio 1, rom): alias isa-bios @pc.bios 0000000000020000-000000000003ffff
+      00000000fd000000-00000000fdffffff (prio 1, ram): vga.vram
+      00000000fea00000-00000000feafffff (prio 1, i/o): edu-mmio
+      00000000feb10000-00000000feb10fff (prio 1, i/o): vga.mmio
+        00000000feb10000-00000000feb1017f (prio 0, i/o): edid
+        00000000feb10400-00000000feb1041f (prio 0, i/o): vga ioports remapped
+        00000000feb10500-00000000feb10515 (prio 0, i/o): bochs dispi interface
+        00000000feb10600-00000000feb10607 (prio 0, i/o): qemu extended regs
+      00000000fffc0000-00000000ffffffff (prio 0, rom): pc.bios
+    00000000000a0000-00000000000bffff (prio 1, i/o): alias smram-region @pci 00000000000a0000-00000000000bffff
+    00000000000c0000-00000000000c3fff (prio 1, ram): alias pam-rom @pc.ram 00000000000c0000-00000000000c3fff
+    00000000000c4000-00000000000c7fff (prio 1, ram): alias pam-rom @pc.ram 00000000000c4000-00000000000c7fff
+    00000000000c8000-00000000000cbfff (prio 1, ram): alias pam-rom @pc.ram 00000000000c8000-00000000000cbfff
+    00000000000ca000-00000000000ccfff (prio 1000, ram): alias kvmvapic-rom @pc.ram 00000000000ca000-00000000000ccfff
+    00000000000cc000-00000000000cffff (prio 1, ram): alias pam-rom @pc.ram 00000000000cc000-00000000000cffff
+    00000000000d0000-00000000000d3fff (prio 1, ram): alias pam-rom @pc.ram 00000000000d0000-00000000000d3fff
+    00000000000d4000-00000000000d7fff (prio 1, ram): alias pam-rom @pc.ram 00000000000d4000-00000000000d7fff
+    00000000000d8000-00000000000dbfff (prio 1, ram): alias pam-rom @pc.ram 00000000000d8000-00000000000dbfff
+    00000000000dc000-00000000000dffff (prio 1, ram): alias pam-rom @pc.ram 00000000000dc000-00000000000dffff
+    00000000000e0000-00000000000e3fff (prio 1, ram): alias pam-rom @pc.ram 00000000000e0000-00000000000e3fff
+    00000000000e4000-00000000000e7fff (prio 1, ram): alias pam-ram @pc.ram 00000000000e4000-00000000000e7fff
+    00000000000e8000-00000000000ebfff (prio 1, ram): alias pam-ram @pc.ram 00000000000e8000-00000000000ebfff
+    00000000000ec000-00000000000effff (prio 1, ram): alias pam-ram @pc.ram 00000000000ec000-00000000000effff
+    00000000000f0000-00000000000fffff (prio 1, ram): alias pam-rom @pc.ram 00000000000f0000-00000000000fffff
+    00000000fec00000-00000000fec00fff (prio 0, i/o): ioapic
+    00000000fed00000-00000000fed003ff (prio 0, i/o): hpet
+    00000000fee00000-00000000feefffff (prio 4096, i/o): apic-msi
+
+address-space: PIIX4_PM
+  0000000000000000-ffffffffffffffff (prio 0, i/o): bus master container
+
+address-space: piix3-ide
+  0000000000000000-ffffffffffffffff (prio 0, i/o): bus master container
+
+memory-region: smram
+  0000000000000000-00000000ffffffff (prio 0, i/o): smram
+    00000000000a0000-00000000000bffff (prio 0, ram): alias smram-low @pc.ram 00000000000a0000-00000000000bffff
+
+memory-region: system
+  0000000000000000-ffffffffffffffff (prio 0, i/o): system
+    0000000000000000-000000001fffffff (prio 0, ram): alias ram-below-4g @pc.ram 0000000000000000-000000001fffffff
+    0000000000000000-ffffffffffffffff (prio -1, i/o): pci
+      00000000000a0000-00000000000bffff (prio 1, i/o): vga-lowmem
+      00000000000c0000-00000000000dffff (prio 1, rom): pc.rom
+      00000000000e0000-00000000000fffff (prio 1, rom): alias isa-bios @pc.bios 0000000000020000-000000000003ffff
+      00000000fd000000-00000000fdffffff (prio 1, ram): vga.vram
+      00000000fea00000-00000000feafffff (prio 1, i/o): edu-mmio
+      00000000feb10000-00000000feb10fff (prio 1, i/o): vga.mmio
+        00000000feb10000-00000000feb1017f (prio 0, i/o): edid
+        00000000feb10400-00000000feb1041f (prio 0, i/o): vga ioports remapped
+        00000000feb10500-00000000feb10515 (prio 0, i/o): bochs dispi interface
+        00000000feb10600-00000000feb10607 (prio 0, i/o): qemu extended regs
+      00000000fffc0000-00000000ffffffff (prio 0, rom): pc.bios
+    00000000000a0000-00000000000bffff (prio 1, i/o): alias smram-region @pci 00000000000a0000-00000000000bffff
+    00000000000c0000-00000000000c3fff (prio 1, ram): alias pam-rom @pc.ram 00000000000c0000-00000000000c3fff
+    00000000000c4000-00000000000c7fff (prio 1, ram): alias pam-rom @pc.ram 00000000000c4000-00000000000c7fff
+    00000000000c8000-00000000000cbfff (prio 1, ram): alias pam-rom @pc.ram 00000000000c8000-00000000000cbfff
+    00000000000ca000-00000000000ccfff (prio 1000, ram): alias kvmvapic-rom @pc.ram 00000000000ca000-00000000000ccfff
+    00000000000cc000-00000000000cffff (prio 1, ram): alias pam-rom @pc.ram 00000000000cc000-00000000000cffff
+    00000000000d0000-00000000000d3fff (prio 1, ram): alias pam-rom @pc.ram 00000000000d0000-00000000000d3fff
+    00000000000d4000-00000000000d7fff (prio 1, ram): alias pam-rom @pc.ram 00000000000d4000-00000000000d7fff
+    00000000000d8000-00000000000dbfff (prio 1, ram): alias pam-rom @pc.ram 00000000000d8000-00000000000dbfff
+    00000000000dc000-00000000000dffff (prio 1, ram): alias pam-rom @pc.ram 00000000000dc000-00000000000dffff
+    00000000000e0000-00000000000e3fff (prio 1, ram): alias pam-rom @pc.ram 00000000000e0000-00000000000e3fff
+    00000000000e4000-00000000000e7fff (prio 1, ram): alias pam-ram @pc.ram 00000000000e4000-00000000000e7fff
+    00000000000e8000-00000000000ebfff (prio 1, ram): alias pam-ram @pc.ram 00000000000e8000-00000000000ebfff
+    00000000000ec000-00000000000effff (prio 1, ram): alias pam-ram @pc.ram 00000000000ec000-00000000000effff
+    00000000000f0000-00000000000fffff (prio 1, ram): alias pam-rom @pc.ram 00000000000f0000-00000000000fffff
+    00000000fec00000-00000000fec00fff (prio 0, i/o): ioapic
+    00000000fed00000-00000000fed003ff (prio 0, i/o): hpet
+    00000000fee00000-00000000feefffff (prio 4096, i/o): apic-msi
+
+memory-region: pc.ram
+  0000000000000000-000000001fffffff (prio 0, ram): pc.ram
+
+memory-region: pc.bios
+  00000000fffc0000-00000000ffffffff (prio 0, rom): pc.bios
+
+memory-region: pci
+  0000000000000000-ffffffffffffffff (prio -1, i/o): pci
+    00000000000a0000-00000000000bffff (prio 1, i/o): vga-lowmem
+    00000000000c0000-00000000000dffff (prio 1, rom): pc.rom
+    00000000000e0000-00000000000fffff (prio 1, rom): alias isa-bios @pc.bios 0000000000020000-000000000003ffff
+    00000000fd000000-00000000fdffffff (prio 1, ram): vga.vram
+    00000000fea00000-00000000feafffff (prio 1, i/o): edu-mmio
+    00000000feb10000-00000000feb10fff (prio 1, i/o): vga.mmio
+      00000000feb10000-00000000feb1017f (prio 0, i/o): edid
+      00000000feb10400-00000000feb1041f (prio 0, i/o): vga ioports remapped
+      00000000feb10500-00000000feb10515 (prio 0, i/o): bochs dispi interface
+      00000000feb10600-00000000feb10607 (prio 0, i/o): qemu extended regs
+    00000000fffc0000-00000000ffffffff (prio 0, rom): pc.bios
+
