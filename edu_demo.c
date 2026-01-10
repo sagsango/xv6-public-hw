@@ -80,7 +80,7 @@ main(int argc, char *argv[])
 
   char option[32];
   do {
-      printf("Choose an option:\n"
+      printf(1, "Choose an option:\n"
               "0: test_id_and_liveness\n"
               "1: test_raw_irq\n"
               "2: test_factorial\n"

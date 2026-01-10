@@ -120,6 +120,7 @@ mkfs: mkfs.c fs.h
 UPROGS= \
 	_cat _echo _forktest _grep _init _kill _ln _ls _mkdir \
 	_rm _sh _stressfs _usertests _wc _zombie \
+	_edu_demo \
 #
 
 fs.img: mkfs README $(UPROGS)
@@ -159,7 +160,6 @@ CPUS := 2
 endif
 QEMUOPTS = -nic none -hda xv6.img -hdb fs.img -smp $(CPUS) -m 512 $(QEMUEXTRA) \
 		   -monitor telnet:localhost:4444,server,nowait \
-		   -machine pc,pci-memory-region-size=256M \
 		   -device edu
 
 qemu: fs.img xv6.img
