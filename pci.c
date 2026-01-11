@@ -132,7 +132,7 @@ pci_write16(uchar bus, uchar dev, uchar func, uchar offset, ushort val)
     outl(PCI_CONFIG_DATA, old);
 }
 
-/* XXX: Without enabling device interrupt may not reach to the kernel */
+/* XXX: Without enabling dma_test for the edu device does not work */
 void
 pci_enable_device(uchar bus, uchar dev, uchar func)
 {

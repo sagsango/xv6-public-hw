@@ -95,3 +95,7 @@ Enable: Set command reg (PCI 0x04) for mem access, then program VGA mode (e.g., 
 
 Test: Add -vga std to QEMU for graphical output. Without it, xv6 falls back to serial.
 This keeps text console intact while unlocking graphics. If you're seeing blank QEMU screen (no text), check -serial stdio vs. -nographic—or paste boot logs for debug!3.3s
+
+
+# TODO:
+Have IOMMU support here
