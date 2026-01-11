@@ -33,7 +33,9 @@ kinit1(void *vstart, void *vend)
 
 void
 kinit2()
-{
+{ 
+  // XXX: NOT need as mmio memory is already getting mapped in kvmalloc
+  //kinit1((void*)V2P(0xfea00000), (void*)V2P(0xfeb00000));
   kmem.use_lock = 1;
 }
 

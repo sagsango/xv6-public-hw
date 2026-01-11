@@ -37,11 +37,12 @@
 #define EDU_REG_DMA_CNT      0x90  // RW: length
 #define EDU_REG_DMA_CMD      0x98  // RW: command bits
 # define EDU_DMA_CMD_START   0x01  // start transfer
-# define EDU_DMA_CMD_DIR     0x02  // 0: RAM->EDU, 1: EDU->RAM
+# define RAM_TO_EDU_DMA_CMD_DIR 0x00
+# define EDU_TO_RAM_DMA_CMD_DIR 0x02  // 0: RAM->EDU, 1: EDU->RAM
 # define EDU_DMA_CMD_IRQ     0x04  // raise IRQ (bit 0x100) after DMA
 
 // internal device buffer offset for DMA
-#define EDU_DEVBUF_OFFSET    0x40000   // within MMIO BAR
+#define EDU_DEVBUF_OFFSET    0x40000  // within MMIO BAR
 
 // default INTx, if PCI_INTERRUPT_LINE is 0/0xff
 #define EDU_IRQ_DEFAULT 10
@@ -65,6 +66,8 @@ void   pci_write32(uchar, uchar, uchar, uchar, uint);
 void
 edu_attach(uint bar0_raw, uchar irq_line)
 {
+
+
   uint paddr = bar0_raw & ~0xF;   // clear BAR flags
 
   edu_mmio = (volatile uint*)P2V(paddr);
@@ -89,10 +92,10 @@ edu_attach(uint bar0_raw, uchar irq_line)
   cprintf("EDU: ID reg=0x%x\n", id);
 
   // liveness: invert and check
-  uint live = edu_mmio[EDU_REG_LIVENESS / 4];
-  edu_mmio[EDU_REG_LIVENESS / 4] = ~live;
-  uint live2 = edu_mmio[EDU_REG_LIVENESS / 4];
-  cprintf("EDU: liveness 0x%x -> 0x%x\n", live, live2);
+  uint test = 0x12345678;
+  edu_mmio[EDU_REG_LIVENESS / 4] = test;
+  uint result = edu_mmio[EDU_REG_LIVENESS / 4];
+  cprintf("EDU: liveness 0x%x -> 0x%x=0x%x\n", test, result, ~test);
 
   // enable interrupt-after-factorial
   uint status = edu_mmio[EDU_REG_STATUS / 4];
@@ -108,6 +111,20 @@ edu_attach(uint bar0_raw, uchar irq_line)
   edu_last_irq_status = 0;
 
   cprintf("EDU: attached and ready\n");
+
+ /* XXX: TODO: See kvmalloc() for kernel va mapping */
+ // XXX: Bad on 2nd GB
+ // int * addr = (int*)(0xFFFF800000000000LL + 0x40000000LL +  0x1000);
+ // XXX: Bad on 3rd GB
+ // int * addr = (int*)(0xFFFF800000000000LL + 0x80000000LL +  0x1000);
+ // XXX: Good on 4th GB
+ // int * addr = (int*)(0xFFFF800000000000LL + 0xC0000000LL +  0x1000);
+ // XXX: Good on 1st GB; see the dump in qemu monitor
+    int * addr = (int*)(0xFFFF800000000000LL + 0x00000000LL +  0x0000);
+ // XXX: Good on 4th GB; ad our edu device use it
+ // int * addr = (int*)(0xFFFF800000000000LL + 0xfea00000 +  0x0000);
+ //   int * addr = (int*)(0xFFFF800000000000LL + 0xfea00000 +  0x1000);
+    *addr = 0xbeef;
 }
 
 // ======== IRQ handling ========
@@ -185,9 +202,10 @@ edu_liveness_flip(void)
 {
   if (!edu_mmio)
     return 0;
-  uint live = edu_mmio[EDU_REG_LIVENESS / 4];
-  edu_mmio[EDU_REG_LIVENESS / 4] = ~live;
-  return edu_mmio[EDU_REG_LIVENESS / 4];
+  uint test =  0x12345678;
+  edu_mmio[EDU_REG_LIVENESS / 4] = test;
+  uint result = edu_mmio[EDU_REG_LIVENESS / 4];
+  return (~test) == result;
 }
 
 // ======== factorial engine ========
@@ -235,6 +253,24 @@ edu_factorial(uint n, uint *result)
   return 0;
 }
 
+/* XXX: TODO: dma test nly generates 1 irq for now
+ *            why?
+ *
+ *            qemu page says about the irq of edu device:
+ *            IRQ controller : An IRQ is generated when written 
+ *            to the interrupt raise register. The value appears
+ *            in interrupt status register when the interrupt is
+ *            raised and has to be written to the interrupt 
+ *            acknowledge register to lower it. The device supports 
+ *            both INTx and MSI interrupt. By default, INTx is 
+ *            used. Even if the driver disabled INTx and only uses 
+ *            MSI, it still needs to update the acknowledge register 
+ *            at the end of the IRQ handler routine.
+ *
+ *
+ *            We still need to read doc + learn somthing here and
+ *            spend some time on it.
+*/
 // ======== DMA test ========
 //
 // Use one 4096-byte kernel buffer, DMA it into the device buffer at
@@ -244,29 +280,48 @@ edu_factorial(uint n, uint *result)
 int
 edu_dma_test(void)
 {
+  int istatus  = -1024;
   if (!edu_mmio)
     return -1;
 
-  char *kbuf = kalloc();
+  char *kbuf = kalloc(); //(char*)0xfec00000 + KERNBASE; //kalloc();
   if (!kbuf)
     return -1;
 
   uint pa = V2P(kbuf);
   int len = 100;   // must be <= 4096
 
+  cprintf("ram-pa for dma:0x%x\n", pa);
   // fill pattern
   for (int i = 0; i < len; i++)
     kbuf[i] = (char)(i ^ 0x5a);
+
+  /*
+  istatus = edu_mmio[EDU_REG_IRQ_STATUS / 4];
+  if (istatus)
+    edu_mmio[EDU_REG_IRQ_ACK / 4] = istatus;
+  */
 
   // RAM -> EDU buffer (0x40000)
   edu_mmio[EDU_REG_DMA_SRC / 4] = pa;
   edu_mmio[EDU_REG_DMA_DST / 4] = EDU_DEVBUF_OFFSET;
   edu_mmio[EDU_REG_DMA_CNT / 4] = len;
-  edu_mmio[EDU_REG_DMA_CMD / 4] = EDU_DMA_CMD_START | EDU_DMA_CMD_IRQ; // start, raise IRQ (0x100)
+  edu_mmio[EDU_REG_DMA_CMD / 4] = EDU_DMA_CMD_START |
+                                  RAM_TO_EDU_DMA_CMD_DIR | // RAM->EDU
+                                  EDU_DMA_CMD_IRQ; // start, raise IRQ (0x100)
 
   // wait until DONE
   while (edu_mmio[EDU_REG_DMA_CMD / 4] & EDU_DMA_CMD_START)
     ;
+
+
+  /*
+  // Post-ack DMA IRQ (bit 0x100)
+  istatus = edu_mmio[EDU_REG_IRQ_STATUS / 4];
+  if (istatus & 0x100)
+    edu_mmio[EDU_REG_IRQ_ACK / 4] = 0x100;
+  */
+  cprintf("EDU DMA: RAM->EDU done (irq=0x%x)\n", istatus);
 
   // clear buffer
   for (int i = 0; i < len; i++)
@@ -277,15 +332,24 @@ edu_dma_test(void)
   edu_mmio[EDU_REG_DMA_DST / 4] = pa;
   edu_mmio[EDU_REG_DMA_CNT / 4] = len;
   edu_mmio[EDU_REG_DMA_CMD / 4] = EDU_DMA_CMD_START |
-                                  EDU_DMA_CMD_DIR   | // EDU->RAM
+                                  EDU_TO_RAM_DMA_CMD_DIR   | // EDU->RAM
                                   EDU_DMA_CMD_IRQ;    // raise IRQ (0x100)
 
   while (edu_mmio[EDU_REG_DMA_CMD / 4] & EDU_DMA_CMD_START)
     ;
 
+  /*
+  // Post-ack DMA IRQ (bit 0x100)
+  istatus = edu_mmio[EDU_REG_IRQ_STATUS / 4];
+  if (istatus & 0x100)
+    edu_mmio[EDU_REG_IRQ_ACK / 4] = 0x100;
+  */
+  cprintf("EDU DMA: EDU->RAM done (irq=0x%x)\n", istatus);
+
   // verify pattern
   int ok = 1;
   for (int i = 0; i < len; i++) {
+      cprintf("check: %d == %d\n", kbuf[i], (i ^ 0x5a)); 
     if (kbuf[i] != (char)(i ^ 0x5a)) {
       ok = 0;
       break;

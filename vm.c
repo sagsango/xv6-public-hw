@@ -125,9 +125,23 @@ kvmalloc(void)
   memset(kpdpt, 0, PGSIZE);
   kpml4[PMX(KERNBASE)] = v2p(kpdpt) | PTE_P | PTE_W;
 
+  /* XXX:
+   *
+   *    PTE_PS = Huge page table 1 GB
+   *    PTE_P  = Present page
+   *    PTE_W  = Write allowed
+   *
+   *    PTE_PWT = Write through (no writeback delay)
+   *    PTE_PCD = Disables all caching (UC: Uncached) 
+   *              for the region. Bypasses L1/L2/L3 caches entirely.
+   */
   // direct map first GB of physical addresses to KERNBASE
   kpdpt[0] = 0 | PTE_PS | PTE_P | PTE_W;
 
+  //kpdpt[1] = 0x40000000 | PTE_PS | PTE_P | PTE_W | PTE_PWT | PTE_PCD;
+  //kpdpt[2] = 0x80000000 | PTE_PS | PTE_P | PTE_W | PTE_PWT | PTE_PCD;
+
+  /* XXX: THIS IS HOW WE MAP MMIO MEMORY */
   // direct map 4th GB of physical addresses to KERNBASE+3GB
   // this is a very lazy way to map IO memory (for lapic and ioapic)
   // PTE_PWT and PTE_PCD for memory mapped I/O correctness.

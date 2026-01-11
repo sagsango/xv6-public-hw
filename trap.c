@@ -88,15 +88,18 @@ trap(struct trapframe *tf)
 
         cprintf("[PF] Page fault at VA=%p RIP=%p\n", va, tf->rip);
 
+        panic("page-fault");
         // check if this belongs to the EDU MMIO window
         uint64 start = 0; //(uint64)P2V(edu_bar0_paddr);
         uint64 end   = 0; //start + EDU_MMIO_SIZE;
 
+        
         if(va >= start && va < end){
             cprintf("[PF] Mapping MMIO page for EDU device...\n");
 //            map_edu_mmio_page(va);
             return;   // retry the faulting instruction
         }
+        break;
 
         // else fall through to existing panic logic
     }

@@ -105,6 +105,44 @@ extern void edu_attach(uint bar0_raw, uchar irq_line);
 #define MAX_BUS 256
 #define AVAILABLE_BUS 1
 
+
+#define PCI_COMMAND            0x04
+#define PCI_COMMAND_IO         0x1
+#define PCI_COMMAND_MEMORY     0x2
+#define PCI_COMMAND_BUSMASTER  0x4
+void
+pci_write16(uchar bus, uchar dev, uchar func, uchar offset, ushort val)
+{
+    uint addr = pci_config_addr(bus, dev, func, offset);
+    outl(PCI_CONFIG_ADDRESS, addr);
+
+    // Write 16-bit value using 32-bit access
+    // Because CONFIG_DATA always performs 32-bit writes
+    uint old = inl(PCI_CONFIG_DATA);
+
+    if (offset & 2) {
+        // high 16 bits
+        val = val << 16;
+        old = (old & 0x0000FFFF) | val;
+    } else {
+        // low 16 bits
+        old = (old & 0xFFFF0000) | val;
+    }
+
+    outl(PCI_CONFIG_DATA, old);
+}
+
+/* XXX: Without enabling device interrupt may not reach to the kernel */
+void
+pci_enable_device(uchar bus, uchar dev, uchar func)
+{
+    ushort cmd = pci_read16(bus, dev, func, PCI_COMMAND);
+    cmd |= (PCI_COMMAND_MEMORY | PCI_COMMAND_BUSMASTER);
+    pci_write16(bus, dev, func, PCI_COMMAND, cmd);
+}
+
+
+
 void
 pci_scan(void)
 {
@@ -145,6 +183,8 @@ pci_scan(void)
           cprintf("  -> Found EDU at %d:%d.%d BAR0=0x%x IRQ=%d\n",
                   bus, dev, func, bar0, irq_line);
 
+
+          pci_enable_device(bus, dev, func);
           // Fully initialize the EDU device
           edu_attach(bar0, irq_line);
         }
