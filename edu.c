@@ -120,6 +120,10 @@ edu_attach(uint bar0_raw, uchar irq_line)
  // XXX: Good on 4th GB
  // int * addr = (int*)(0xFFFF800000000000LL + 0xC0000000LL +  0x1000);
  // XXX: Good on 1st GB; see the dump in qemu monitor
+ /* (qemu) xp /16b 0
+  * 0000000000000000: 0xef 0xbe 0x00 0x00 0x53 0xff 0x00 0xf0
+  * 0000000000000008: 0xc3 0xe2 0x00 0xf0 0x53 0xff 0x00 0xf0
+  */
     int * addr = (int*)(0xFFFF800000000000LL + 0x00000000LL +  0x0000);
  // XXX: Good on 4th GB; ad our edu device use it
  // int * addr = (int*)(0xFFFF800000000000LL + 0xfea00000 +  0x0000);
