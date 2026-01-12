@@ -189,5 +189,10 @@ void            clearpteu(pde_t *pgdir, char *uva);
 // pci.c
 void pci_scan(void);
 
+// pci-testdev.c
+void
+pcitestdev_init(uint bar0_pa, uint bar1_port);
+void pcitestdev_intr(void);
+
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
