@@ -22,6 +22,7 @@ main(void)
   kvmalloc();      // kernel page table
   mpinit();        // detect other processors
   lapicinit();     // interrupt controller
+  /* XXX: make trap vector */
   tvinit();        // trap vectors
   seginit();       // segment descriptors
   cprintf("\ncpu%d: starting Fall 2021 xv6\n\n", cpunum());
@@ -48,11 +49,16 @@ mpenter(void)
   mpmain();
 }
 
+/* XXX: This is a common path */
 // Common CPU setup code.
 static void
 mpmain(void)
 {
   cprintf("cpu%d: starting\n", cpunum());
+  /* XXX: 
+   *    After this instruction CPU knows where
+   *    the interrupt handler address is
+   */
   idtinit();       // load idt register
   syscallinit();   // syscall set up
   xchg(&cpu->started, 1); // tell startothers() we're up

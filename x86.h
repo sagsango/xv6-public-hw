@@ -60,6 +60,10 @@ stosl(void *addr, int data, int cnt)
 #ifndef __i386__ // suppress warning for bootmain
 struct segdesc;
 
+/* XXX: This setsup the interrup discriper table
+ *      so that cpu is aware of where the interrup
+ *      handler adreess are
+ */
 static inline void
 lgdt(struct segdesc *p, int size)
 {

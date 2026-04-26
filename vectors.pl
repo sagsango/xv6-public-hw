@@ -1,5 +1,25 @@
 #!/usr/bin/perl -w
 
+# XXX: How the interrupt numbers are created;
+#      Interesting
+#      see the content of the vector.S
+#     
+#      vector222:
+#      push $0
+#      push $222
+#      jmp alltraps
+#      vector223:
+#      push $0
+#      push $223
+#      jmp alltraps
+#
+#      so all the vector address instructions are just pushing
+#      the trapnumber then jump to alltraps in trapasm.S
+#
+#      where before jumping to the trap() is makes rest of the
+#      trapframe by pusing the general-purpose registers
+
+
 # Generate vectors.S, the trap/interrupt entry points.
 # There has to be one entry point per interrupt number
 # since otherwise there's no way for trap() to discover
